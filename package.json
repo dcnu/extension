@@ -1,0 +1,16 @@
+{
+	"name": "dylan-extension",
+	"version": "1.0.0",
+	"description": "Browser extension that intercepts navigation to greylist domains",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc --watch",
+		"lint": "eslint src/**/*.ts",
+		"test": "echo \"No tests yet\" && exit 0"
+	},
+	"devDependencies": {
+		"@types/chrome": "^0.0.287",
+		"typescript": "^5.7.0"
+	}
+}

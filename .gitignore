@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.npm/
+.pnpm-store/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs/
+
+# Environment
+.env*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+Icon?
+.fseventsd/
+.VolumeIcon.icns
+
+# AI tools
+.claude*
+CLAUDE.md
+.cursor*
+
+# Project management
+TODO*
+archive*
+
+# Testing/coverage
+coverage/
+.nyc_output/
+.eslintcache
+.stylelintcache
+
+# Note: dist/ is NOT ignored - compiled JS is required for extension to work

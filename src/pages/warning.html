@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>dylan - Warning</title>
+	<link rel="stylesheet" href="../styles/global.css">
+</head>
+<body class="warning-page">
+	<div class="warning-container">
+		<div class="warning-icon">⚠️</div>
+		<h1>Greylisted Domain</h1>
+		<p class="warning-message">You are about to visit:</p>
+		<p class="domain-display" id="domain"></p>
+		<p class="url-display" id="url"></p>
+
+		<div class="warning-actions">
+			<button id="block" class="btn-block">No, I didn't mean to</button>
+			<button id="proceed" class="btn-proceed">Proceed anyway</button>
+		</div>
+
+	</div>
+	<script type="module" src="../../dist/pages/warning.js"></script>
+</body>
+</html>

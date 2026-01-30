@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>dylan - Settings</title>
+	<link rel="stylesheet" href="../styles/global.css">
+</head>
+<body>
+	<div class="settings-layout">
+		<nav class="sidebar">
+			<div class="sidebar-header">dylan</div>
+			<ul class="sidebar-nav">
+				<li><a href="#greylist">Greylist</a></li>
+				<li><a href="#statistics">Statistics</a></li>
+				<li><a href="#shortcuts">Shortcuts</a></li>
+			</ul>
+			<footer class="sidebar-footer">
+				<p>v1.0.0</p>
+			</footer>
+		</nav>
+
+		<main class="settings-content">
+			<section id="greylist" class="card">
+				<h2>Greylist Domains</h2>
+				<p class="help-text">Enter domains separated by commas (e.g., facebook.com, twitter.com)</p>
+				<textarea id="domains" rows="6" placeholder="example.com, social-media.com"></textarea>
+				<div class="domain-controls">
+					<button id="sort" class="btn-secondary btn-small">Sort A-Z</button>
+					<label class="checkbox-label">
+						<input type="checkbox" id="prettier">
+						<span>One per line</span>
+					</label>
+				</div>
+				<div class="actions">
+					<button id="save" class="btn-primary">Save Changes</button>
+				</div>
+				<div id="message" class="message" hidden></div>
+			</section>
+
+			<section id="statistics" class="card">
+				<h2>Statistics</h2>
+				<p class="help-text">View your navigation history and blocking stats</p>
+				<div class="actions">
+					<a href="stats.html" class="btn-secondary">View Stats</a>
+				</div>
+			</section>
+
+			<section id="shortcuts" class="card">
+				<h2>Keyboard Shortcuts</h2>
+				<div class="shortcuts-list">
+					<div class="shortcut-item">
+						<kbd id="shortcut-copy-clean-url">⌘⇧L</kbd>
+						<span>Copy current URL without tracking parameters</span>
+					</div>
+				</div>
+				<p class="help-text shortcut-hint">Customize shortcuts in <a href="#" id="open-shortcuts">browser settings</a></p>
+			</section>
+		</main>
+	</div>
+	<script type="module" src="../../dist/pages/settings.js"></script>
+</body>
+</html>

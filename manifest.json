@@ -1,0 +1,47 @@
+{
+	"manifest_version": 3,
+	"name": "dylan",
+	"version": "1.0.0",
+	"description": "Intercepts navigation to greylist domains with a warning page",
+	"permissions": [
+		"storage",
+		"declarativeNetRequest",
+		"declarativeNetRequestFeedback",
+		"tabs",
+		"offscreen",
+		"clipboardWrite"
+	],
+	"host_permissions": ["<all_urls>"],
+	"background": {
+		"service_worker": "dist/background/service-worker.js",
+		"type": "module"
+	},
+	"action": {
+		"default_title": "dylan",
+		"default_icon": {
+			"16": "icons/icon16.png",
+			"48": "icons/icon48.png",
+			"128": "icons/icon128.png"
+		}
+	},
+	"icons": {
+		"16": "icons/icon16.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	},
+	"commands": {
+		"copy-clean-url": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+L",
+				"mac": "Command+Shift+L"
+			},
+			"description": "Copy cleaned URL to clipboard"
+		}
+	},
+	"web_accessible_resources": [
+		{
+			"resources": ["src/pages/warning.html"],
+			"matches": ["<all_urls>"]
+		}
+	]
+}

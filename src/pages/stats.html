@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>dylan - Stats</title>
+	<link rel="stylesheet" href="../styles/global.css">
+</head>
+<body>
+	<div class="container">
+		<header>
+			<h1>Navigation History</h1>
+			<p class="subtitle"><a href="settings.html">← Back to Settings</a></p>
+		</header>
+
+		<main>
+			<section class="card stats-summary">
+				<div class="stat">
+					<span class="stat-value" id="total">0</span>
+					<span class="stat-label">Total Attempts</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value stat-blocked" id="blocked">0</span>
+					<span class="stat-label">Blocked</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value stat-proceeded" id="proceeded">0</span>
+					<span class="stat-label">Proceeded</span>
+				</div>
+			</section>
+
+			<section class="card">
+				<div class="card-header">
+					<h2>Time by Domain</h2>
+				</div>
+				<div id="time-stats-container">
+					<table class="logs-table">
+						<thead>
+							<tr>
+								<th>Domain</th>
+								<th>Total Time</th>
+								<th>Visits</th>
+								<th>Avg/Visit</th>
+							</tr>
+						</thead>
+						<tbody id="time-stats"></tbody>
+					</table>
+					<p id="time-empty-state" class="empty-state" hidden>No time data yet.</p>
+				</div>
+			</section>
+
+			<section class="card">
+				<div class="card-header">
+					<h2>Log</h2>
+					<button id="clear" class="btn-danger">Clear All</button>
+				</div>
+				<div id="logs-container">
+					<table class="logs-table">
+						<thead>
+							<tr>
+								<th>Timestamp</th>
+								<th>Domain</th>
+								<th>Action</th>
+								<th>Duration</th>
+							</tr>
+						</thead>
+						<tbody id="logs"></tbody>
+					</table>
+					<p id="empty-state" class="empty-state" hidden>No navigation attempts logged yet.</p>
+				</div>
+			</section>
+
+			<section class="card">
+				<div class="card-header">
+					<h2>Audit Log</h2>
+				</div>
+				<div id="audit-container">
+					<table class="logs-table">
+						<thead>
+							<tr>
+								<th>Timestamp</th>
+								<th>Event</th>
+							</tr>
+						</thead>
+						<tbody id="audit-logs"></tbody>
+					</table>
+					<p id="audit-empty-state" class="empty-state" hidden>No audit events.</p>
+				</div>
+			</section>
+		</main>
+
+		<footer>
+			<p>dylan v1.0.0</p>
+		</footer>
+	</div>
+	<script type="module" src="../../dist/pages/stats.js"></script>
+</body>
+</html>
