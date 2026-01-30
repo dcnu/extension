@@ -16,6 +16,8 @@ export interface ActiveSession {
 	tabId: number;
 	domain: string;
 	startTime: number;
+	accumulatedTime: number; // total active ms so far
+	lastActiveTime: number | null; // timestamp when tab became active, null if inactive
 }
 
 export interface AuditLog {

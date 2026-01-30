@@ -4,9 +4,11 @@ import {
 	addActiveSession,
 	removeActiveSession,
 	getActiveSessionByTab,
+	getActiveSessions,
+	setSessionActive,
 	updateLogDuration,
 } from '../lib/storage.js';
-import { updateGreylistRules, temporarilyAllowDomain } from '../lib/rules.js';
+import { updateGreylistRules, authorizeTabForDomain, revokeTabAuthorization, revokeAllAuthorizationsForTab } from '../lib/rules.js';
 import { cleanUrl } from '../lib/url-cleaner.js';
 import type { ExtensionMessage } from '../lib/types.js';
 
@@ -25,15 +27,24 @@ chrome.action.onClicked.addListener(() => {
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
 	if (message.type === 'ALLOW_ONCE') {
 		(async () => {
-			await temporarilyAllowDomain(message.domain);
-			await addActiveSession({
-				logId: message.logId,
-				tabId: message.tabId,
-				domain: message.domain,
-				startTime: Date.now(),
-			});
-			sendResponse({ success: true });
-		})().catch((error) => sendResponse({ success: false, error: error.message }));
+			try {
+				await authorizeTabForDomain(message.tabId, message.domain);
+				await addActiveSession({
+					logId: message.logId,
+					tabId: message.tabId,
+					domain: message.domain,
+					startTime: Date.now(),
+					accumulatedTime: 0,
+					lastActiveTime: Date.now(), // Start as active (user just clicked proceed)
+				});
+				// Navigate from background - ensures rule is applied before navigation
+				await chrome.tabs.update(message.tabId, { url: message.url });
+				sendResponse({ success: true });
+			} catch (error) {
+				console.error('ALLOW_ONCE failed:', error);
+				sendResponse({ success: false, error: String(error) });
+			}
+		})();
 		return true;
 	}
 });
@@ -77,8 +88,13 @@ chrome.commands.onCommand.addListener(async (command) => {
 async function endSession(tabId: number): Promise<void> {
 	const session = await removeActiveSession(tabId);
 	if (session) {
-		const duration = Date.now() - session.startTime;
+		let duration = session.accumulatedTime;
+		// Add any time since last activation
+		if (session.lastActiveTime) {
+			duration += Date.now() - session.lastActiveTime;
+		}
 		await updateLogDuration(session.logId, duration);
+		await revokeTabAuthorization(tabId, session.domain);
 	}
 }
 
@@ -91,12 +107,13 @@ function extractDomain(url: string): string {
 }
 
 // End session when tab is closed
-chrome.tabs.onRemoved.addListener((tabId) => {
-	endSession(tabId);
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+	await endSession(tabId);
+	await revokeAllAuthorizationsForTab(tabId);
 });
 
 // End session when navigating away from the tracked domain
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 	if (changeInfo.url) {
 		const session = await getActiveSessionByTab(tabId);
 		if (session) {
@@ -105,6 +122,47 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 				currentDomain.endsWith('.' + session.domain);
 			if (!isStillOnDomain) {
 				await endSession(tabId);
+			}
+		}
+	}
+});
+
+// Track active time: pause/resume when switching tabs
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+	const sessions = await getActiveSessions();
+	for (const session of sessions) {
+		if (session.tabId === activeInfo.tabId) {
+			await setSessionActive(session.tabId, true);
+		} else {
+			// Check if this tab is in the same window
+			try {
+				const tab = await chrome.tabs.get(session.tabId);
+				if (tab.windowId === activeInfo.windowId) {
+					await setSessionActive(session.tabId, false);
+				}
+			} catch {
+				// Tab doesn't exist anymore
+			}
+		}
+	}
+});
+
+// Track active time: pause all when window loses focus, resume when gains focus
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+	const sessions = await getActiveSessions();
+
+	if (windowId === chrome.windows.WINDOW_ID_NONE) {
+		// All windows lost focus - pause all sessions
+		for (const session of sessions) {
+			await setSessionActive(session.tabId, false);
+		}
+	} else {
+		// A window gained focus - activate the active tab's session if tracked
+		const [activeTab] = await chrome.tabs.query({ active: true, windowId });
+		if (activeTab?.id) {
+			const session = sessions.find(s => s.tabId === activeTab.id);
+			if (session) {
+				await setSessionActive(activeTab.id, true);
 			}
 		}
 	}

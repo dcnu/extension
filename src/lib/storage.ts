@@ -73,6 +73,20 @@ export async function getActiveSessionByTab(tabId: number): Promise<ActiveSessio
 	return sessions.find(s => s.tabId === tabId) ?? null;
 }
 
+export async function setSessionActive(tabId: number, isActive: boolean): Promise<void> {
+	const sessions = await getActiveSessions();
+	const session = sessions.find(s => s.tabId === tabId);
+	if (session) {
+		if (isActive) {
+			session.lastActiveTime = Date.now();
+		} else if (session.lastActiveTime) {
+			session.accumulatedTime += Date.now() - session.lastActiveTime;
+			session.lastActiveTime = null;
+		}
+		await chrome.storage.local.set({ [STORAGE_KEYS.ACTIVE_SESSIONS]: sessions });
+	}
+}
+
 // Audit logs (immutable)
 export async function getAuditLogs(): Promise<AuditLog[]> {
 	const result = await chrome.storage.local.get(STORAGE_KEYS.AUDIT_LOGS);
