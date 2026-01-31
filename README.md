@@ -1,4 +1,4 @@
-# dylan
+# 🐻 extension
 
 Personal Chrome extension with productivity and browsing utilities.
 

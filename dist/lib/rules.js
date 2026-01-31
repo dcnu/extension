@@ -1,4 +1,5 @@
-const RULE_ID_BASE = 1000;
+const REDIRECT_RULE_ID_BASE = 1000;
+const ALLOW_RULE_ID_BASE = 10000;
 function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -6,12 +7,85 @@ function createRegexFilter(domain) {
     const escaped = escapeRegex(domain);
     return `^https?://(.*\\.)?${escaped}/`;
 }
+function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash);
+}
+function getAllowRuleId(tabId, domain) {
+    // Deterministic rule ID from tabId + domain hash
+    return ALLOW_RULE_ID_BASE + (tabId % 1000) * 100 + hashCode(domain) % 100;
+}
+export async function authorizeTabForDomain(tabId, domain) {
+    const ruleId = getAllowRuleId(tabId, domain);
+    const regexFilter = createRegexFilter(domain);
+    const rule = {
+        id: ruleId,
+        priority: 2, // Higher than redirect rules (priority 1)
+        action: { type: chrome.declarativeNetRequest.RuleActionType.ALLOW },
+        condition: {
+            regexFilter,
+            resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+            tabIds: [tabId],
+        },
+    };
+    console.log('[rules] Creating allow rule:', { ruleId, tabId, domain, regexFilter });
+    // Use session rules for tabIds support (dynamic rules don't support tabIds)
+    try {
+        await chrome.declarativeNetRequest.updateSessionRules({
+            removeRuleIds: [ruleId],
+            addRules: [rule],
+        });
+    }
+    catch (error) {
+        console.error('[rules] updateSessionRules failed:', error);
+        throw error;
+    }
+    // Verify rule was created
+    const rules = await chrome.declarativeNetRequest.getSessionRules();
+    const created = rules.find(r => r.id === ruleId);
+    const allowRules = rules.filter(r => r.id >= ALLOW_RULE_ID_BASE);
+    console.log('[rules] After creation:', {
+        ruleId,
+        created: !!created,
+        totalRules: rules.length,
+        allowRuleCount: allowRules.length,
+        allowRuleIds: allowRules.map(r => r.id)
+    });
+    if (!created) {
+        throw new Error(`Failed to create allow rule ${ruleId} for ${domain}`);
+    }
+}
+export async function revokeTabAuthorization(tabId, domain) {
+    const ruleId = getAllowRuleId(tabId, domain);
+    await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [ruleId],
+    });
+}
+export async function revokeAllAuthorizationsForTab(tabId) {
+    // Query session rules (allow rules with tabIds are session-scoped)
+    const rules = await chrome.declarativeNetRequest.getSessionRules();
+    const allowRuleIds = rules
+        .filter(r => r.id >= ALLOW_RULE_ID_BASE && r.condition?.tabIds?.includes(tabId))
+        .map(r => r.id);
+    if (allowRuleIds.length > 0) {
+        await chrome.declarativeNetRequest.updateSessionRules({
+            removeRuleIds: allowRuleIds,
+        });
+    }
+}
 export async function updateGreylistRules(domains) {
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-    const existingIds = existingRules.map(rule => rule.id);
+    // Remove existing redirect rules (allow rules are session-scoped, not dynamic)
+    const redirectRuleIds = existingRules
+        .filter(rule => rule.id < ALLOW_RULE_ID_BASE)
+        .map(rule => rule.id);
     const warningPageUrl = chrome.runtime.getURL('src/pages/warning.html');
     const newRules = domains.map((domain, index) => ({
-        id: RULE_ID_BASE + index,
+        id: REDIRECT_RULE_ID_BASE + index,
         priority: 1,
         action: {
             type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
@@ -25,30 +99,14 @@ export async function updateGreylistRules(domains) {
         },
     }));
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingIds,
+        removeRuleIds: redirectRuleIds,
         addRules: newRules,
     });
 }
-export async function temporarilyAllowDomain(domain) {
-    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-    const domainRegex = createRegexFilter(domain);
-    const matchingRule = existingRules.find(rule => rule.condition.regexFilter === domainRegex);
-    if (matchingRule) {
-        await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: [matchingRule.id],
-        });
-        setTimeout(async () => {
-            const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
-            const stillRemoved = !currentRules.find(r => r.id === matchingRule.id);
-            if (stillRemoved) {
-                await chrome.declarativeNetRequest.updateDynamicRules({
-                    addRules: [matchingRule],
-                });
-            }
-        }, 5000);
-    }
-}
 export async function getRuleCount() {
-    const rules = await chrome.declarativeNetRequest.getDynamicRules();
-    return rules.length;
+    const [dynamicRules, sessionRules] = await Promise.all([
+        chrome.declarativeNetRequest.getDynamicRules(),
+        chrome.declarativeNetRequest.getSessionRules(),
+    ]);
+    return dynamicRules.length + sessionRules.length;
 }

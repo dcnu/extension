@@ -7,6 +7,7 @@ import {
 	getActiveSessions,
 	setSessionActive,
 	updateLogDuration,
+	addLog,
 } from '../lib/storage.js';
 import { updateGreylistRules, authorizeTabForDomain, revokeTabAuthorization, revokeAllAuthorizationsForTab } from '../lib/rules.js';
 import { cleanUrl } from '../lib/url-cleaner.js';
@@ -42,6 +43,24 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
 				sendResponse({ success: true });
 			} catch (error) {
 				console.error('ALLOW_ONCE failed:', error);
+				sendResponse({ success: false, error: String(error) });
+			}
+		})();
+		return true;
+	}
+
+	if (message.type === 'LOG_BLOCK') {
+		(async () => {
+			try {
+				await addLog({
+					timestamp: Date.now(),
+					domain: message.domain,
+					fullUrl: message.fullUrl,
+					action: 'blocked',
+				});
+				sendResponse({ success: true });
+			} catch (error) {
+				console.error('LOG_BLOCK failed:', error);
 				sendResponse({ success: false, error: String(error) });
 			}
 		})();

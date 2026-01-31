@@ -34,7 +34,7 @@ export interface StorageData {
 	auditLogs: AuditLog[];
 }
 
-export type MessageType = 'ALLOW_ONCE' | 'RULES_UPDATED' | 'COPY_TEXT';
+export type MessageType = 'ALLOW_ONCE' | 'RULES_UPDATED' | 'COPY_TEXT' | 'LOG_BLOCK';
 
 export interface AllowOnceMessage {
 	type: 'ALLOW_ONCE';
@@ -53,4 +53,10 @@ export interface CopyTextMessage {
 	text: string;
 }
 
-export type ExtensionMessage = AllowOnceMessage | RulesUpdatedMessage | CopyTextMessage;
+export interface LogBlockMessage {
+	type: 'LOG_BLOCK';
+	domain: string;
+	fullUrl: string;
+}
+
+export type ExtensionMessage = AllowOnceMessage | RulesUpdatedMessage | CopyTextMessage | LogBlockMessage;
