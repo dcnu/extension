@@ -1,10 +1,10 @@
-import { getGreylist, setGreylist } from '../lib/storage.js';
+import { getGreylist, setGreylist, getLogs, getActiveSessions, getAuditLogs } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
 const domainsInput = document.getElementById('domains');
 const saveButton = document.getElementById('save');
 const sortButton = document.getElementById('sort');
 const prettierCheckbox = document.getElementById('prettier');
-const messageDiv = document.getElementById('message');
+const messageAlert = document.getElementById('message');
 const openShortcutsLink = document.getElementById('open-shortcuts');
 const shortcutCopyCleanUrl = document.getElementById('shortcut-copy-clean-url');
 function parseDomains(input) {
@@ -15,11 +15,11 @@ function parseDomains(input) {
         .filter(d => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(d));
 }
 function showMessage(text, isError = false) {
-    messageDiv.textContent = text;
-    messageDiv.className = `message ${isError ? 'error' : 'success'}`;
-    messageDiv.hidden = false;
+    messageAlert.textContent = text;
+    messageAlert.setAttribute('variant', isError ? 'danger' : 'success');
+    messageAlert.open = true;
     setTimeout(() => {
-        messageDiv.hidden = true;
+        messageAlert.open = false;
     }, 3000);
 }
 function formatDomains(domains) {
@@ -49,12 +49,13 @@ sortButton.addEventListener('click', () => {
     const domains = getCurrentDomains().sort((a, b) => a.localeCompare(b));
     domainsInput.value = formatDomains(domains);
 });
-prettierCheckbox.addEventListener('change', () => {
+prettierCheckbox.addEventListener('sl-change', () => {
     const domains = getCurrentDomains();
     domainsInput.value = formatDomains(domains);
 });
 domainsInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    const ke = e;
+    if (ke.key === 'Enter' && (ke.metaKey || ke.ctrlKey)) {
         saveSettings();
     }
 });
@@ -62,20 +63,77 @@ openShortcutsLink.addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
 });
-// Show platform-appropriate shortcut
-const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-shortcutCopyCleanUrl.textContent = isMac ? '⌘⇧L' : 'Ctrl+Shift+L';
+async function getActualShortcut(commandName) {
+    const commands = await chrome.commands.getAll();
+    const command = commands.find(c => c.name === commandName);
+    return command?.shortcut || null;
+}
+async function loadShortcuts() {
+    const shortcut = await getActualShortcut('copy-clean-url');
+    if (shortcut) {
+        shortcutCopyCleanUrl.textContent = shortcut;
+        shortcutCopyCleanUrl.classList.remove('not-set');
+    }
+    else {
+        shortcutCopyCleanUrl.textContent = 'Not set';
+        shortcutCopyCleanUrl.classList.add('not-set');
+    }
+}
+loadShortcuts();
+// Debug section
+const copyDebugButton = document.getElementById('copy-debug');
+const debugOutput = document.getElementById('debug-output');
+async function gatherDebugInfo() {
+    const [logs, sessions, auditLogs, dynamicRules, sessionRules, greylist] = await Promise.all([
+        getLogs(),
+        getActiveSessions(),
+        getAuditLogs(),
+        chrome.declarativeNetRequest.getDynamicRules(),
+        chrome.declarativeNetRequest.getSessionRules(),
+        getGreylist(),
+    ]);
+    const formatRule = (r) => ({
+        id: r.id,
+        priority: r.priority,
+        action: r.action.type,
+        regexFilter: r.condition?.regexFilter,
+        tabIds: r.condition?.tabIds,
+    });
+    const info = {
+        timestamp: new Date().toISOString(),
+        greylist: greylist.domains,
+        activeSessions: sessions,
+        recentLogs: logs.slice(0, 20),
+        auditLogs: auditLogs.slice(0, 10),
+        dynamicRules: dynamicRules.map(formatRule),
+        sessionRules: sessionRules.map(formatRule),
+    };
+    return JSON.stringify(info, null, 2);
+}
+copyDebugButton.addEventListener('click', async () => {
+    const info = await gatherDebugInfo();
+    debugOutput.textContent = info;
+    debugOutput.hidden = false;
+    await navigator.clipboard.writeText(info);
+    copyDebugButton.textContent = 'Copied!';
+    setTimeout(() => copyDebugButton.textContent = 'Copy Debug Info', 2000);
+});
 // Active nav highlighting based on scroll position
 const navLinks = document.querySelectorAll('.sidebar-nav a');
 const sections = document.querySelectorAll('.settings-content section');
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            navLinks.forEach(link => link.classList.remove('active'));
-            const activeLink = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
-            activeLink?.classList.add('active');
+function updateActiveNav() {
+    const scrollY = window.scrollY;
+    let currentSection = sections[0];
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (scrollY >= sectionTop) {
+            currentSection = section;
         }
     });
-}, { threshold: 0.5 });
-sections.forEach(section => observer.observe(section));
+    navLinks.forEach(link => link.classList.remove('active'));
+    const activeLink = document.querySelector(`.sidebar-nav a[href="#${currentSection.id}"]`);
+    activeLink?.classList.add('active');
+}
+window.addEventListener('scroll', updateActiveNav);
+updateActiveNav();
 loadSettings();

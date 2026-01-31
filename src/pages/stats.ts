@@ -1,4 +1,5 @@
 import { getLogs, clearLogs, getAuditLogs } from '../lib/storage.js';
+import { getRootDomain } from '../lib/domain.js';
 import type { NavigationLog, AuditLog } from '../lib/types.js';
 
 const totalEl = document.getElementById('total') as HTMLSpanElement;
@@ -10,7 +11,7 @@ const timeStatsBody = document.getElementById('time-stats') as HTMLTableSectionE
 const timeEmptyState = document.getElementById('time-empty-state') as HTMLParagraphElement;
 const auditLogsBody = document.getElementById('audit-logs') as HTMLTableSectionElement;
 const auditEmptyState = document.getElementById('audit-empty-state') as HTMLParagraphElement;
-const clearButton = document.getElementById('clear') as HTMLButtonElement;
+const clearButton = document.getElementById('clear') as HTMLElement;
 
 function formatTimestamp(ts: number): string {
 	const date = new Date(ts);
@@ -39,10 +40,11 @@ function calculateTimeStats(logs: NavigationLog[]): Map<string, DomainStats> {
 	const stats = new Map<string, DomainStats>();
 	for (const log of logs) {
 		if (log.action === 'proceeded' && log.duration !== undefined) {
-			const existing = stats.get(log.domain) ?? { totalTime: 0, visits: 0 };
+			const normalizedDomain = getRootDomain(log.domain);
+			const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0 };
 			existing.totalTime += log.duration;
 			existing.visits += 1;
-			stats.set(log.domain, existing);
+			stats.set(normalizedDomain, existing);
 		}
 	}
 	return stats;

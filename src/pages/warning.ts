@@ -1,10 +1,10 @@
 import { addLog } from '../lib/storage.js';
-import type { AllowOnceMessage } from '../lib/types.js';
+import type { AllowOnceMessage, LogBlockMessage } from '../lib/types.js';
 
 const domainDisplay = document.getElementById('domain') as HTMLParagraphElement;
 const urlDisplay = document.getElementById('url') as HTMLParagraphElement;
-const blockButton = document.getElementById('block') as HTMLButtonElement;
-const proceedButton = document.getElementById('proceed') as HTMLButtonElement;
+const blockButton = document.getElementById('block') as HTMLElement;
+const proceedButton = document.getElementById('proceed') as HTMLElement;
 
 function getUrlFromParams(): string | null {
 	const params = new URLSearchParams(window.location.search);
@@ -28,7 +28,22 @@ if (!originalUrl) {
 	domainDisplay.textContent = domain;
 	urlDisplay.textContent = originalUrl;
 
+	let actionTaken = false;
+
+	// Log as blocked if user closes tab without clicking Block or Proceed
+	window.addEventListener('beforeunload', () => {
+		if (!actionTaken) {
+			const message: LogBlockMessage = {
+				type: 'LOG_BLOCK',
+				domain,
+				fullUrl: originalUrl,
+			};
+			chrome.runtime.sendMessage(message);
+		}
+	});
+
 	blockButton.addEventListener('click', async () => {
+		actionTaken = true;
 		await addLog({
 			timestamp: Date.now(),
 			domain,
@@ -43,6 +58,7 @@ if (!originalUrl) {
 	});
 
 	proceedButton.addEventListener('click', async () => {
+		actionTaken = true;
 		const logId = await addLog({
 			timestamp: Date.now(),
 			domain,
@@ -61,9 +77,7 @@ if (!originalUrl) {
 			tabId,
 		};
 
-		const response = await chrome.runtime.sendMessage(message);
-		if (response?.success) {
-			window.location.href = originalUrl;
-		}
+		// Navigation handled by background script after rule update
+		await chrome.runtime.sendMessage(message);
 	});
 }

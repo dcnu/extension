@@ -1,6 +1,6 @@
 {
-	"name": "dylan-extension",
-	"version": "1.0.0",
+	"name": "extension",
+	"version": "1.0.3",
 	"description": "Browser extension that intercepts navigation to greylist domains",
 	"type": "module",
 	"scripts": {
@@ -15,5 +15,8 @@
 		"eslint": "^9.39.2",
 		"typescript": "^5.7.0",
 		"typescript-eslint": "^8.54.0"
+	},
+	"dependencies": {
+		"@shoelace-style/shoelace": "^2.20.1"
 	}
 }

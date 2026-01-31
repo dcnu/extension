@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@shoelace-style/shoelace':
+        specifier: ^2.20.1
+        version: 2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.2.10)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.2
@@ -25,6 +29,10 @@ importers:
         version: 8.54.0(eslint@9.39.2)(typescript@5.9.3)
 
 packages:
+
+  '@ctrl/tinycolor@4.2.0':
+    resolution: {integrity: sha512-kzyuwOAQnXJNLS9PSyrk0CWk35nWJW/zl/6KvnTBMFK65gm7U1/Z5BqjxeapjZCIhQcM/DsrEmcbRwDyXyXK4A==}
+    engines: {node: '>=14'}
 
   '@eslint-community/eslint-utils@4.9.1':
     resolution: {integrity: sha512-phrYmNiYppR7znFEdqgfWHXR6NCkZEK7hwWDHZUjit/2/U0r6XvkDl0SYnoM51Hq7FhCGdLDT6zxCCOY1hexsQ==}
@@ -64,6 +72,15 @@ packages:
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@floating-ui/core@1.7.4':
+    resolution: {integrity: sha512-C3HlIdsBxszvm5McXlB8PeOEWfBhcGBTZGkGlWc2U0KFY5IwG5OQEuQ8rq52DZmcHDlPLd+YFBK+cZcytwIFWg==}
+
+  '@floating-ui/dom@1.7.5':
+    resolution: {integrity: sha512-N0bD2kIPInNHUHehXhMke1rBGs1dwqvC9O9KYMyyjK7iXt7GAhnro7UlcuYcGdS/yYOlq0MAVgrow8IbWJwyqg==}
+
+  '@floating-ui/utils@0.2.10':
+    resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
     engines: {node: '>=18.18.0'}
@@ -79,6 +96,27 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@lit-labs/ssr-dom-shim@1.5.1':
+    resolution: {integrity: sha512-Aou5UdlSpr5whQe8AA/bZG0jMj96CoJIWbGfZ91qieWu5AWUMKw8VR/pAkQkJYvBNhmCcWnZlyyk5oze8JIqYA==}
+
+  '@lit/react@1.0.8':
+    resolution: {integrity: sha512-p2+YcF+JE67SRX3mMlJ1TKCSTsgyOVdAwd/nxp3NuV1+Cb6MWALbN6nT7Ld4tpmYofcE5kcaSY1YBB9erY+6fw==}
+    peerDependencies:
+      '@types/react': 17 || 18 || 19
+
+  '@lit/reactive-element@2.1.2':
+    resolution: {integrity: sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==}
+
+  '@shoelace-style/animations@1.2.0':
+    resolution: {integrity: sha512-avvo1xxkLbv2dgtabdewBbqcJfV0e0zCwFqkPMnHFGbJbBHorRFfMAHh1NG9ymmXn0jW95ibUVH03E1NYXD6Gw==}
+
+  '@shoelace-style/localize@3.2.1':
+    resolution: {integrity: sha512-r4C9C/5kSfMBIr0D9imvpRdCNXtUNgyYThc4YlS6K5Hchv1UyxNQ9mxwj+BTRH2i1Neits260sR3OjKMnplsFA==}
+
+  '@shoelace-style/shoelace@2.20.1':
+    resolution: {integrity: sha512-FSghU95jZPGbwr/mybVvk66qRZYpx5FkXL+vLNpy1Vp8UsdwSxXjIHE3fsvMbKWTKi9UFfewHTkc5e7jAqRYoQ==}
+    engines: {node: '>=14.17.0'}
 
   '@types/chrome@0.0.287':
     resolution: {integrity: sha512-wWhBNPNXZHwycHKNYnexUcpSbrihVZu++0rdp6GEk5ZgAglenLx+RwdEouh6FrHS0XQiOxSd62yaujM1OoQlZQ==}
@@ -97,6 +135,12 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/react@19.2.10':
+    resolution: {integrity: sha512-WPigyYuGhgZ/cTPRXB2EwUw+XvsRA3GqHlsP4qteqrnnjDrApbS7MxcGr/hke5iUoeB7E/gQtrs9I37zAJ0Vjw==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@typescript-eslint/eslint-plugin@8.54.0':
     resolution: {integrity: sha512-hAAP5io/7csFStuOmR782YmTthKBJ9ND3WVL60hcOjvtGFb+HJxH4O5huAcmcZ9v9G8P+JETiZ/G1B8MALnWZQ==}
@@ -201,12 +245,20 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
+  composed-offset-position@0.0.6:
+    resolution: {integrity: sha512-Q7dLompI6lUwd7LWyIcP66r4WcS9u7AL2h8HaeipiRfCRPLMWqRx8fYsjb4OHi6UQFifO7XtNC2IlEJ1ozIFxw==}
+    peerDependencies:
+      '@floating-ui/utils': ^0.2.5
+
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -358,6 +410,15 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
+  lit-element@4.2.2:
+    resolution: {integrity: sha512-aFKhNToWxoyhkNDmWZwEva2SlQia+jfG0fjIWV//YeTaWrVnOxD89dPKfigCUspXFmjzOEUQpOkejH5Ly6sG0w==}
+
+  lit-html@3.3.2:
+    resolution: {integrity: sha512-Qy9hU88zcmaxBXcc10ZpdK7cOLXvXpRoBxERdtqV9QOrfpMZZ6pSYP91LhpPtap3sFMUiL7Tw2RImbe0Al2/kw==}
+
+  lit@3.3.2:
+    resolution: {integrity: sha512-NF9zbsP79l4ao2SNrH3NkfmFgN/hBYSQo90saIVI1o5GpjAdCPVstVzO1MrLOakHoEhYkrtRjPK6Ob521aoYWQ==}
+
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
@@ -413,6 +474,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  qr-creator@1.0.0:
+    resolution: {integrity: sha512-C0cqfbS1P5hfqN4NhsYsUXePlk9BO+a45bAQ3xLYjBL3bOIFzoVEjs79Fado9u9BPBD3buHi3+vY+C8tHh4qMQ==}
 
   resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
@@ -483,6 +547,8 @@ packages:
 
 snapshots:
 
+  '@ctrl/tinycolor@4.2.0': {}
+
   '@eslint-community/eslint-utils@4.9.1(eslint@9.39.2)':
     dependencies:
       eslint: 9.39.2
@@ -529,6 +595,17 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
+  '@floating-ui/core@1.7.4':
+    dependencies:
+      '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/dom@1.7.5':
+    dependencies:
+      '@floating-ui/core': 1.7.4
+      '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/utils@0.2.10': {}
+
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.7':
@@ -539,6 +616,34 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@lit-labs/ssr-dom-shim@1.5.1': {}
+
+  '@lit/react@1.0.8(@types/react@19.2.10)':
+    dependencies:
+      '@types/react': 19.2.10
+
+  '@lit/reactive-element@2.1.2':
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.5.1
+
+  '@shoelace-style/animations@1.2.0': {}
+
+  '@shoelace-style/localize@3.2.1': {}
+
+  '@shoelace-style/shoelace@2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.2.10)':
+    dependencies:
+      '@ctrl/tinycolor': 4.2.0
+      '@floating-ui/dom': 1.7.5
+      '@lit/react': 1.0.8(@types/react@19.2.10)
+      '@shoelace-style/animations': 1.2.0
+      '@shoelace-style/localize': 3.2.1
+      composed-offset-position: 0.0.6(@floating-ui/utils@0.2.10)
+      lit: 3.3.2
+      qr-creator: 1.0.0
+    transitivePeerDependencies:
+      - '@floating-ui/utils'
+      - '@types/react'
 
   '@types/chrome@0.0.287':
     dependencies:
@@ -556,6 +661,12 @@ snapshots:
   '@types/har-format@1.2.16': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/react@19.2.10':
+    dependencies:
+      csstype: 3.2.3
+
+  '@types/trusted-types@2.0.7': {}
 
   '@typescript-eslint/eslint-plugin@8.54.0(@typescript-eslint/parser@8.54.0(eslint@9.39.2)(typescript@5.9.3))(eslint@9.39.2)(typescript@5.9.3)':
     dependencies:
@@ -691,6 +802,10 @@ snapshots:
 
   color-name@1.1.4: {}
 
+  composed-offset-position@0.0.6(@floating-ui/utils@0.2.10):
+    dependencies:
+      '@floating-ui/utils': 0.2.10
+
   concat-map@0.0.1: {}
 
   cross-spawn@7.0.6:
@@ -698,6 +813,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  csstype@3.2.3: {}
 
   debug@4.4.3:
     dependencies:
@@ -845,6 +962,22 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
+  lit-element@4.2.2:
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.5.1
+      '@lit/reactive-element': 2.1.2
+      lit-html: 3.3.2
+
+  lit-html@3.3.2:
+    dependencies:
+      '@types/trusted-types': 2.0.7
+
+  lit@3.3.2:
+    dependencies:
+      '@lit/reactive-element': 2.1.2
+      lit-element: 4.2.2
+      lit-html: 3.3.2
+
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
@@ -893,6 +1026,8 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   punycode@2.3.1: {}
+
+  qr-creator@1.0.0: {}
 
   resolve-from@4.0.0: {}
 

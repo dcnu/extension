@@ -1,19 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="sl-theme-light">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>dylan - Settings</title>
+	<title>extension - Settings</title>
 	<link rel="stylesheet" href="../styles/global.css">
+	<link rel="stylesheet" href="../../vendor/shoelace/themes/light.css" />
+	<script type="module" src="../../vendor/shoelace/shoelace-autoloader.js"></script>
 </head>
 <body>
 	<div class="settings-layout">
 		<nav class="sidebar">
-			<div class="sidebar-header">dylan</div>
+			<div class="sidebar-header">🐻</div>
 			<ul class="sidebar-nav">
 				<li><a href="#greylist">Greylist</a></li>
 				<li><a href="#statistics">Statistics</a></li>
 				<li><a href="#shortcuts">Shortcuts</a></li>
+				<li><a href="#debug">Debug</a></li>
 			</ul>
 			<footer class="sidebar-footer">
 				<p>v1.0.0</p>
@@ -24,25 +27,22 @@
 			<section id="greylist" class="card">
 				<h2>Greylist Domains</h2>
 				<p class="help-text">Enter domains separated by commas (e.g., facebook.com, twitter.com)</p>
-				<textarea id="domains" rows="6" placeholder="example.com, social-media.com"></textarea>
+				<sl-textarea id="domains" rows="6" placeholder="example.com, social-media.com" resize="vertical"></sl-textarea>
 				<div class="domain-controls">
-					<button id="sort" class="btn-secondary btn-small">Sort A-Z</button>
-					<label class="checkbox-label">
-						<input type="checkbox" id="prettier">
-						<span>One per line</span>
-					</label>
+					<sl-button id="sort" variant="neutral" size="small">Sort A-Z</sl-button>
+					<sl-checkbox id="prettier">One per line</sl-checkbox>
 				</div>
 				<div class="actions">
-					<button id="save" class="btn-primary">Save Changes</button>
+					<sl-button id="save" variant="primary">Save Changes</sl-button>
 				</div>
-				<div id="message" class="message" hidden></div>
+				<sl-alert id="message" variant="success" closable></sl-alert>
 			</section>
 
 			<section id="statistics" class="card">
 				<h2>Statistics</h2>
 				<p class="help-text">View your navigation history and blocking stats</p>
 				<div class="actions">
-					<a href="stats.html" class="btn-secondary">View Stats</a>
+					<sl-button variant="neutral" href="stats.html">View Stats</sl-button>
 				</div>
 			</section>
 
@@ -50,11 +50,20 @@
 				<h2>Keyboard Shortcuts</h2>
 				<div class="shortcuts-list">
 					<div class="shortcut-item">
-						<kbd id="shortcut-copy-clean-url">⌘⇧L</kbd>
+						<kbd id="shortcut-copy-clean-url"></kbd>
 						<span>Copy current URL without tracking parameters</span>
 					</div>
 				</div>
 				<p class="help-text shortcut-hint">Customize shortcuts in <a href="#" id="open-shortcuts">browser settings</a></p>
+			</section>
+
+			<section id="debug" class="card">
+				<h2>Debug</h2>
+				<p class="help-text">Extension state for troubleshooting.</p>
+				<div class="actions">
+					<sl-button id="copy-debug" variant="neutral">Copy Debug Info</sl-button>
+				</div>
+				<pre id="debug-output" class="debug-output" hidden></pre>
 			</section>
 		</main>
 	</div>

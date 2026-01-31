@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
-	"name": "dylan",
-	"version": "1.0.2",
+	"name": "extension",
+	"version": "1.0.3",
 	"description": "Personal productivity and browsing utilities",
 	"permissions": [
 		"storage",
@@ -17,7 +17,7 @@
 		"type": "module"
 	},
 	"action": {
-		"default_title": "dylan",
+		"default_title": "extension",
 		"default_icon": {
 			"16": "icons/icon16.png",
 			"48": "icons/icon48.png",

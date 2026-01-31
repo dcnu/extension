@@ -23,7 +23,20 @@ else {
     const domain = extractDomain(originalUrl);
     domainDisplay.textContent = domain;
     urlDisplay.textContent = originalUrl;
+    let actionTaken = false;
+    // Log as blocked if user closes tab without clicking Block or Proceed
+    window.addEventListener('beforeunload', () => {
+        if (!actionTaken) {
+            const message = {
+                type: 'LOG_BLOCK',
+                domain,
+                fullUrl: originalUrl,
+            };
+            chrome.runtime.sendMessage(message);
+        }
+    });
     blockButton.addEventListener('click', async () => {
+        actionTaken = true;
         await addLog({
             timestamp: Date.now(),
             domain,
@@ -36,6 +49,7 @@ else {
         }
     });
     proceedButton.addEventListener('click', async () => {
+        actionTaken = true;
         const logId = await addLog({
             timestamp: Date.now(),
             domain,
@@ -51,9 +65,7 @@ else {
             logId,
             tabId,
         };
-        const response = await chrome.runtime.sendMessage(message);
-        if (response?.success) {
-            window.location.href = originalUrl;
-        }
+        // Navigation handled by background script after rule update
+        await chrome.runtime.sendMessage(message);
     });
 }

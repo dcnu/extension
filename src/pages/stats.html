@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="sl-theme-light">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>dylan - Stats</title>
+	<title>extension - Stats</title>
 	<link rel="stylesheet" href="../styles/global.css">
+	<link rel="stylesheet" href="../../vendor/shoelace/themes/light.css" />
+	<script type="module" src="../../vendor/shoelace/shoelace-autoloader.js"></script>
 </head>
 <body>
 	<div class="container">
@@ -52,7 +54,7 @@
 			<section class="card">
 				<div class="card-header">
 					<h2>Log</h2>
-					<button id="clear" class="btn-danger">Clear All</button>
+					<sl-button id="clear" variant="danger" size="small">Clear All</sl-button>
 				</div>
 				<div id="logs-container">
 					<table class="logs-table">
@@ -90,7 +92,7 @@
 		</main>
 
 		<footer>
-			<p>dylan v1.0.0</p>
+			<p>🐻 v1.0.0</p>
 		</footer>
 	</div>
 	<script type="module" src="../../dist/pages/stats.js"></script>

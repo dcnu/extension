@@ -29,7 +29,8 @@ logs/
 .LSOverride
 .Spotlight-V100
 .Trashes
-Icon?
+Icon
+Icon\r
 .fseventsd/
 .VolumeIcon.icns
 

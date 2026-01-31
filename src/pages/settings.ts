@@ -1,11 +1,15 @@
 import { getGreylist, setGreylist, getLogs, getActiveSessions, getAuditLogs } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
 
-const domainsInput = document.getElementById('domains') as HTMLTextAreaElement;
-const saveButton = document.getElementById('save') as HTMLButtonElement;
-const sortButton = document.getElementById('sort') as HTMLButtonElement;
-const prettierCheckbox = document.getElementById('prettier') as HTMLInputElement;
-const messageDiv = document.getElementById('message') as HTMLDivElement;
+type SlTextarea = HTMLElement & { value: string };
+type SlCheckbox = HTMLElement & { checked: boolean };
+type SlAlert = HTMLElement & { open: boolean };
+
+const domainsInput = document.getElementById('domains') as SlTextarea;
+const saveButton = document.getElementById('save') as HTMLElement;
+const sortButton = document.getElementById('sort') as HTMLElement;
+const prettierCheckbox = document.getElementById('prettier') as SlCheckbox;
+const messageAlert = document.getElementById('message') as SlAlert;
 const openShortcutsLink = document.getElementById('open-shortcuts') as HTMLAnchorElement;
 const shortcutCopyCleanUrl = document.getElementById('shortcut-copy-clean-url') as HTMLElement;
 
@@ -18,11 +22,11 @@ function parseDomains(input: string): string[] {
 }
 
 function showMessage(text: string, isError: boolean = false): void {
-	messageDiv.textContent = text;
-	messageDiv.className = `message ${isError ? 'error' : 'success'}`;
-	messageDiv.hidden = false;
+	messageAlert.textContent = text;
+	messageAlert.setAttribute('variant', isError ? 'danger' : 'success');
+	messageAlert.open = true;
 	setTimeout(() => {
-		messageDiv.hidden = true;
+		messageAlert.open = false;
 	}, 3000);
 }
 
@@ -62,13 +66,14 @@ sortButton.addEventListener('click', () => {
 	domainsInput.value = formatDomains(domains);
 });
 
-prettierCheckbox.addEventListener('change', () => {
+prettierCheckbox.addEventListener('sl-change', () => {
 	const domains = getCurrentDomains();
 	domainsInput.value = formatDomains(domains);
 });
 
-domainsInput.addEventListener('keydown', (e) => {
-	if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+domainsInput.addEventListener('keydown', (e: Event) => {
+	const ke = e as KeyboardEvent;
+	if (ke.key === 'Enter' && (ke.metaKey || ke.ctrlKey)) {
 		saveSettings();
 	}
 });
@@ -98,7 +103,7 @@ async function loadShortcuts(): Promise<void> {
 loadShortcuts();
 
 // Debug section
-const copyDebugButton = document.getElementById('copy-debug') as HTMLButtonElement;
+const copyDebugButton = document.getElementById('copy-debug') as HTMLElement;
 const debugOutput = document.getElementById('debug-output') as HTMLPreElement;
 
 async function gatherDebugInfo(): Promise<string> {
@@ -145,16 +150,23 @@ copyDebugButton.addEventListener('click', async () => {
 const navLinks = document.querySelectorAll('.sidebar-nav a');
 const sections = document.querySelectorAll('.settings-content section');
 
-const observer = new IntersectionObserver((entries) => {
-	entries.forEach(entry => {
-		if (entry.isIntersecting) {
-			navLinks.forEach(link => link.classList.remove('active'));
-			const activeLink = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
-			activeLink?.classList.add('active');
+function updateActiveNav(): void {
+	const scrollY = window.scrollY;
+	let currentSection = sections[0];
+
+	sections.forEach(section => {
+		const sectionTop = (section as HTMLElement).offsetTop - 100;
+		if (scrollY >= sectionTop) {
+			currentSection = section;
 		}
 	});
-}, { threshold: 0.5 });
 
-sections.forEach(section => observer.observe(section));
+	navLinks.forEach(link => link.classList.remove('active'));
+	const activeLink = document.querySelector(`.sidebar-nav a[href="#${currentSection.id}"]`);
+	activeLink?.classList.add('active');
+}
+
+window.addEventListener('scroll', updateActiveNav);
+updateActiveNav();
 
 loadSettings();

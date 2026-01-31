@@ -1,4 +1,5 @@
 import { getLogs, clearLogs, getAuditLogs } from '../lib/storage.js';
+import { getRootDomain } from '../lib/domain.js';
 const totalEl = document.getElementById('total');
 const blockedEl = document.getElementById('blocked');
 const proceededEl = document.getElementById('proceeded');
@@ -33,10 +34,11 @@ function calculateTimeStats(logs) {
     const stats = new Map();
     for (const log of logs) {
         if (log.action === 'proceeded' && log.duration !== undefined) {
-            const existing = stats.get(log.domain) ?? { totalTime: 0, visits: 0 };
+            const normalizedDomain = getRootDomain(log.domain);
+            const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0 };
             existing.totalTime += log.duration;
             existing.visits += 1;
-            stats.set(log.domain, existing);
+            stats.set(normalizedDomain, existing);
         }
     }
     return stats;
