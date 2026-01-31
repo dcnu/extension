@@ -1,4 +1,4 @@
-import { getLogs, clearLogs, getAuditLogs } from '../lib/storage.js';
+import { getLogs, clearLogs, getAuditLogs, getDomainAliases } from '../lib/storage.js';
 import { getRootDomain } from '../lib/domain.js';
 const totalEl = document.getElementById('total');
 const blockedEl = document.getElementById('blocked');
@@ -30,11 +30,11 @@ function formatDuration(ms) {
     const remainingMinutes = minutes % 60;
     return `${hours}h ${remainingMinutes}m`;
 }
-function calculateTimeStats(logs) {
+function calculateTimeStats(logs, aliases) {
     const stats = new Map();
     for (const log of logs) {
         if (log.action === 'proceeded' && log.duration !== undefined) {
-            const normalizedDomain = getRootDomain(log.domain);
+            const normalizedDomain = getRootDomain(log.domain, aliases);
             const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0 };
             existing.totalTime += log.duration;
             existing.visits += 1;
@@ -43,8 +43,8 @@ function calculateTimeStats(logs) {
     }
     return stats;
 }
-function renderTimeStats(logs) {
-    const stats = calculateTimeStats(logs);
+function renderTimeStats(logs, aliases) {
+    const stats = calculateTimeStats(logs, aliases);
     if (stats.size === 0) {
         timeStatsBody.innerHTML = '';
         timeEmptyState.hidden = false;
@@ -97,9 +97,9 @@ function renderAuditLogs(logs) {
 	`).join('');
 }
 async function loadData() {
-    const [logs, auditLogs] = await Promise.all([getLogs(), getAuditLogs()]);
+    const [logs, auditLogs, aliases] = await Promise.all([getLogs(), getAuditLogs(), getDomainAliases()]);
     renderLogs(logs);
-    renderTimeStats(logs);
+    renderTimeStats(logs, aliases);
     renderAuditLogs(auditLogs);
 }
 clearButton.addEventListener('click', async () => {

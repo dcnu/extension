@@ -1,4 +1,4 @@
-import { getGreylist, setGreylist, getLogs, getActiveSessions, getAuditLogs } from '../lib/storage.js';
+import { getGreylist, setGreylist, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
 const domainsInput = document.getElementById('domains');
 const saveButton = document.getElementById('save');
@@ -23,13 +23,17 @@ function showMessage(text, isError = false) {
     }, 3000);
 }
 function formatDomains(domains) {
-    return prettierCheckbox.checked ? domains.join('\n') : domains.join(', ');
+    return prettierCheckbox.checked ? domains.join(',\n') : domains.join(', ');
 }
 function getCurrentDomains() {
     return [...new Set(parseDomains(domainsInput.value))];
 }
 async function loadSettings() {
-    const config = await getGreylist();
+    const [config, { onePerLine }] = await Promise.all([
+        getGreylist(),
+        chrome.storage.local.get('onePerLine'),
+    ]);
+    prettierCheckbox.checked = onePerLine ?? false;
     domainsInput.value = formatDomains(config.domains);
 }
 async function saveSettings() {
@@ -49,7 +53,8 @@ sortButton.addEventListener('click', () => {
     const domains = getCurrentDomains().sort((a, b) => a.localeCompare(b));
     domainsInput.value = formatDomains(domains);
 });
-prettierCheckbox.addEventListener('sl-change', () => {
+prettierCheckbox.addEventListener('sl-change', async () => {
+    await chrome.storage.local.set({ onePerLine: prettierCheckbox.checked });
     const domains = getCurrentDomains();
     domainsInput.value = formatDomains(domains);
 });
@@ -80,17 +85,81 @@ async function loadShortcuts() {
     }
 }
 loadShortcuts();
+// Alias section
+const aliasList = document.getElementById('alias-list');
+const aliasFromInput = document.getElementById('alias-from');
+const aliasToInput = document.getElementById('alias-to');
+const aliasAddButton = document.getElementById('alias-add');
+function isValidDomain(domain) {
+    return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(domain.toLowerCase());
+}
+function renderAliases(aliases) {
+    if (aliases.length === 0) {
+        aliasList.innerHTML = '<p class="help-text">No aliases configured</p>';
+        return;
+    }
+    aliasList.innerHTML = aliases.map((alias, index) => `
+		<div class="alias-item" data-index="${index}">
+			<span class="alias-from">${alias.from}</span>
+			<span class="alias-arrow">→</span>
+			<span class="alias-to">${alias.to}</span>
+			<sl-button class="alias-remove" size="small" variant="text" data-index="${index}">Remove</sl-button>
+		</div>
+	`).join('');
+    aliasList.querySelectorAll('.alias-remove').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const index = parseInt(e.currentTarget.dataset.index, 10);
+            const currentAliases = await getDomainAliases();
+            currentAliases.splice(index, 1);
+            await setDomainAliases(currentAliases);
+            renderAliases(currentAliases);
+        });
+    });
+}
+async function loadAliases() {
+    const aliases = await getDomainAliases();
+    renderAliases(aliases);
+}
+aliasAddButton.addEventListener('click', async () => {
+    const from = aliasFromInput.value.trim().toLowerCase();
+    const to = aliasToInput.value.trim().toLowerCase();
+    if (!from || !to) {
+        showMessage('Both fields are required', true);
+        return;
+    }
+    if (!isValidDomain(from) || !isValidDomain(to)) {
+        showMessage('Invalid domain format', true);
+        return;
+    }
+    if (from === to) {
+        showMessage('Domains must be different', true);
+        return;
+    }
+    const aliases = await getDomainAliases();
+    if (aliases.some(a => a.from === from)) {
+        showMessage(`Alias for ${from} already exists`, true);
+        return;
+    }
+    aliases.push({ from, to });
+    await setDomainAliases(aliases);
+    renderAliases(aliases);
+    aliasFromInput.value = '';
+    aliasToInput.value = '';
+    showMessage('Alias added');
+});
+loadAliases();
 // Debug section
 const copyDebugButton = document.getElementById('copy-debug');
 const debugOutput = document.getElementById('debug-output');
 async function gatherDebugInfo() {
-    const [logs, sessions, auditLogs, dynamicRules, sessionRules, greylist] = await Promise.all([
+    const [logs, sessions, auditLogs, dynamicRules, sessionRules, greylist, aliases] = await Promise.all([
         getLogs(),
         getActiveSessions(),
         getAuditLogs(),
         chrome.declarativeNetRequest.getDynamicRules(),
         chrome.declarativeNetRequest.getSessionRules(),
         getGreylist(),
+        getDomainAliases(),
     ]);
     const formatRule = (r) => ({
         id: r.id,
@@ -102,6 +171,7 @@ async function gatherDebugInfo() {
     const info = {
         timestamp: new Date().toISOString(),
         greylist: greylist.domains,
+        domainAliases: aliases,
         activeSessions: sessions,
         recentLogs: logs.slice(0, 20),
         auditLogs: auditLogs.slice(0, 10),
@@ -118,22 +188,16 @@ copyDebugButton.addEventListener('click', async () => {
     copyDebugButton.textContent = 'Copied!';
     setTimeout(() => copyDebugButton.textContent = 'Copy Debug Info', 2000);
 });
-// Active nav highlighting based on scroll position
+// Active nav highlighting based on click
 const navLinks = document.querySelectorAll('.sidebar-nav a');
-const sections = document.querySelectorAll('.settings-content section');
-function updateActiveNav() {
-    const scrollY = window.scrollY;
-    let currentSection = sections[0];
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop - 100;
-        if (scrollY >= sectionTop) {
-            currentSection = section;
-        }
+navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
     });
-    navLinks.forEach(link => link.classList.remove('active'));
-    const activeLink = document.querySelector(`.sidebar-nav a[href="#${currentSection.id}"]`);
-    activeLink?.classList.add('active');
-}
-window.addEventListener('scroll', updateActiveNav);
-updateActiveNav();
+});
+// Set initial active state based on hash or first item
+const initialHash = window.location.hash || '#greylist';
+const initialLink = document.querySelector(`.sidebar-nav a[href="${initialHash}"]`);
+initialLink?.classList.add('active');
 loadSettings();

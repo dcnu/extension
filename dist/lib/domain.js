@@ -5,20 +5,30 @@ const MULTI_LEVEL_TLDS = new Set([
 ]);
 /**
  * Extracts the root/registrable domain from a hostname.
+ * Optionally applies domain aliases for stats aggregation.
  * Examples:
  *   www.reddit.com → reddit.com
  *   old.reddit.com → reddit.com
  *   bbc.co.uk → bbc.co.uk
  *   www.bbc.co.uk → bbc.co.uk
+ *   twitter.com → x.com (with aliases)
  */
-export function getRootDomain(hostname) {
+export function getRootDomain(hostname, aliases) {
     const parts = hostname.split('.');
-    if (parts.length <= 2)
-        return hostname;
-    // Check for multi-level TLD
-    const lastTwo = parts.slice(-2).join('.');
-    if (MULTI_LEVEL_TLDS.has(lastTwo)) {
-        return parts.slice(-3).join('.');
+    let root;
+    if (parts.length <= 2) {
+        root = hostname;
     }
-    return parts.slice(-2).join('.');
+    else {
+        const lastTwo = parts.slice(-2).join('.');
+        root = MULTI_LEVEL_TLDS.has(lastTwo)
+            ? parts.slice(-3).join('.')
+            : parts.slice(-2).join('.');
+    }
+    if (aliases) {
+        const alias = aliases.find(a => a.from === root);
+        if (alias)
+            return alias.to;
+    }
+    return root;
 }

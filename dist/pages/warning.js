@@ -1,4 +1,12 @@
 import { addLog } from '../lib/storage.js';
+function isBackForwardNavigation() {
+    const entries = performance.getEntriesByType('navigation');
+    return entries[0]?.type === 'back_forward';
+}
+// Skip warning page on back/forward navigation to avoid duplicate logging
+if (isBackForwardNavigation()) {
+    history.back();
+}
 const domainDisplay = document.getElementById('domain');
 const urlDisplay = document.getElementById('url');
 const blockButton = document.getElementById('block');
@@ -43,9 +51,14 @@ else {
             fullUrl: originalUrl,
             action: 'blocked',
         });
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.id) {
-            chrome.tabs.remove(tab.id);
+        if (history.length > 1) {
+            history.back();
+        }
+        else {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab?.id) {
+                chrome.tabs.remove(tab.id);
+            }
         }
     });
     proceedButton.addEventListener('click', async () => {

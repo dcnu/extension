@@ -3,7 +3,11 @@ const STORAGE_KEYS = {
     LOGS: 'logs',
     ACTIVE_SESSIONS: 'activeSessions',
     AUDIT_LOGS: 'auditLogs',
+    DOMAIN_ALIASES: 'domainAliases',
 };
+const DEFAULT_ALIASES = [
+    { from: 'twitter.com', to: 'x.com' },
+];
 export async function getGreylist() {
     const result = await chrome.storage.local.get(STORAGE_KEYS.GREYLIST);
     return result[STORAGE_KEYS.GREYLIST] ?? { domains: [] };
@@ -90,12 +94,21 @@ export async function addAuditLog(log) {
     logs.unshift(newLog);
     await chrome.storage.local.set({ [STORAGE_KEYS.AUDIT_LOGS]: logs });
 }
+// Domain aliases
+export async function getDomainAliases() {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.DOMAIN_ALIASES);
+    return result[STORAGE_KEYS.DOMAIN_ALIASES] ?? DEFAULT_ALIASES;
+}
+export async function setDomainAliases(aliases) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.DOMAIN_ALIASES]: aliases });
+}
 export async function initializeStorage() {
     const result = await chrome.storage.local.get([
         STORAGE_KEYS.GREYLIST,
         STORAGE_KEYS.LOGS,
         STORAGE_KEYS.ACTIVE_SESSIONS,
         STORAGE_KEYS.AUDIT_LOGS,
+        STORAGE_KEYS.DOMAIN_ALIASES,
     ]);
     if (!result[STORAGE_KEYS.GREYLIST]) {
         await setGreylist({ domains: [] });
@@ -108,5 +121,8 @@ export async function initializeStorage() {
     }
     if (!result[STORAGE_KEYS.AUDIT_LOGS]) {
         await chrome.storage.local.set({ [STORAGE_KEYS.AUDIT_LOGS]: [] });
+    }
+    if (!result[STORAGE_KEYS.DOMAIN_ALIASES]) {
+        await setDomainAliases(DEFAULT_ALIASES);
     }
 }

@@ -1,6 +1,16 @@
 import { addLog } from '../lib/storage.js';
 import type { AllowOnceMessage, LogBlockMessage } from '../lib/types.js';
 
+function isBackForwardNavigation(): boolean {
+	const entries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+	return entries[0]?.type === 'back_forward';
+}
+
+// Skip warning page on back/forward navigation to avoid duplicate logging
+if (isBackForwardNavigation()) {
+	history.back();
+}
+
 const domainDisplay = document.getElementById('domain') as HTMLParagraphElement;
 const urlDisplay = document.getElementById('url') as HTMLParagraphElement;
 const blockButton = document.getElementById('block') as HTMLElement;
@@ -51,9 +61,13 @@ if (!originalUrl) {
 			action: 'blocked',
 		});
 
-		const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-		if (tab?.id) {
-			chrome.tabs.remove(tab.id);
+		if (history.length > 1) {
+			history.back();
+		} else {
+			const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+			if (tab?.id) {
+				chrome.tabs.remove(tab.id);
+			}
 		}
 	});
 

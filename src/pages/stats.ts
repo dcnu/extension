@@ -1,6 +1,6 @@
-import { getLogs, clearLogs, getAuditLogs } from '../lib/storage.js';
+import { getLogs, clearLogs, getAuditLogs, getDomainAliases } from '../lib/storage.js';
 import { getRootDomain } from '../lib/domain.js';
-import type { NavigationLog, AuditLog } from '../lib/types.js';
+import type { NavigationLog, AuditLog, DomainAlias } from '../lib/types.js';
 
 const totalEl = document.getElementById('total') as HTMLSpanElement;
 const blockedEl = document.getElementById('blocked') as HTMLSpanElement;
@@ -36,11 +36,11 @@ interface DomainStats {
 	visits: number;
 }
 
-function calculateTimeStats(logs: NavigationLog[]): Map<string, DomainStats> {
+function calculateTimeStats(logs: NavigationLog[], aliases: DomainAlias[]): Map<string, DomainStats> {
 	const stats = new Map<string, DomainStats>();
 	for (const log of logs) {
 		if (log.action === 'proceeded' && log.duration !== undefined) {
-			const normalizedDomain = getRootDomain(log.domain);
+			const normalizedDomain = getRootDomain(log.domain, aliases);
 			const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0 };
 			existing.totalTime += log.duration;
 			existing.visits += 1;
@@ -50,8 +50,8 @@ function calculateTimeStats(logs: NavigationLog[]): Map<string, DomainStats> {
 	return stats;
 }
 
-function renderTimeStats(logs: NavigationLog[]): void {
-	const stats = calculateTimeStats(logs);
+function renderTimeStats(logs: NavigationLog[], aliases: DomainAlias[]): void {
+	const stats = calculateTimeStats(logs, aliases);
 
 	if (stats.size === 0) {
 		timeStatsBody.innerHTML = '';
@@ -114,9 +114,9 @@ function renderAuditLogs(logs: AuditLog[]): void {
 }
 
 async function loadData(): Promise<void> {
-	const [logs, auditLogs] = await Promise.all([getLogs(), getAuditLogs()]);
+	const [logs, auditLogs, aliases] = await Promise.all([getLogs(), getAuditLogs(), getDomainAliases()]);
 	renderLogs(logs);
-	renderTimeStats(logs);
+	renderTimeStats(logs, aliases);
 	renderAuditLogs(auditLogs);
 }
 

@@ -15,6 +15,7 @@
 			<ul class="sidebar-nav">
 				<li><a href="#greylist">Greylist</a></li>
 				<li><a href="#statistics">Statistics</a></li>
+				<li><a href="#aliases">Aliases</a></li>
 				<li><a href="#shortcuts">Shortcuts</a></li>
 				<li><a href="#debug">Debug</a></li>
 			</ul>
@@ -43,6 +44,18 @@
 				<p class="help-text">View your navigation history and blocking stats</p>
 				<div class="actions">
 					<sl-button variant="neutral" href="stats.html">View Stats</sl-button>
+				</div>
+			</section>
+
+			<section id="aliases" class="card">
+				<h2>Domain Aliases</h2>
+				<p class="help-text">Domains treated as equivalent for stats aggregation</p>
+				<div id="alias-list" class="alias-list"></div>
+				<div class="alias-add">
+					<sl-input id="alias-from" size="small" placeholder="from (e.g. twitter.com)"></sl-input>
+					<span class="alias-arrow">→</span>
+					<sl-input id="alias-to" size="small" placeholder="to (e.g. x.com)"></sl-input>
+					<sl-button id="alias-add" size="small" variant="neutral">Add</sl-button>
 				</div>
 			</section>
 

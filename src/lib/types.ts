@@ -27,11 +27,17 @@ export interface AuditLog {
 	details?: string;
 }
 
+export interface DomainAlias {
+	from: string;
+	to: string;
+}
+
 export interface StorageData {
 	greylist: GreylistConfig;
 	logs: NavigationLog[];
 	activeSessions: ActiveSession[];
 	auditLogs: AuditLog[];
+	domainAliases: DomainAlias[];
 }
 
 export type MessageType = 'ALLOW_ONCE' | 'RULES_UPDATED' | 'COPY_TEXT' | 'LOG_BLOCK';
