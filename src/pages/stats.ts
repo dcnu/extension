@@ -34,18 +34,23 @@ function formatDuration(ms: number | undefined): string {
 interface DomainStats {
 	totalTime: number;
 	visits: number;
+	blocked: number;
 }
 
 function calculateTimeStats(logs: NavigationLog[], aliases: DomainAlias[]): Map<string, DomainStats> {
 	const stats = new Map<string, DomainStats>();
 	for (const log of logs) {
-		if (log.action === 'proceeded' && log.duration !== undefined) {
-			const normalizedDomain = getRootDomain(log.domain, aliases);
-			const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0 };
-			existing.totalTime += log.duration;
+		const normalizedDomain = getRootDomain(log.domain, aliases);
+		const existing = stats.get(normalizedDomain) ?? { totalTime: 0, visits: 0, blocked: 0 };
+		if (log.action === 'proceeded') {
 			existing.visits += 1;
-			stats.set(normalizedDomain, existing);
+			if (log.duration !== undefined) {
+				existing.totalTime += log.duration;
+			}
+		} else if (log.action === 'blocked') {
+			existing.blocked += 1;
 		}
+		stats.set(normalizedDomain, existing);
 	}
 	return stats;
 }
@@ -62,14 +67,19 @@ function renderTimeStats(logs: NavigationLog[], aliases: DomainAlias[]): void {
 	timeEmptyState.hidden = true;
 	const sorted = [...stats.entries()].sort((a, b) => b[1].totalTime - a[1].totalTime);
 
-	timeStatsBody.innerHTML = sorted.map(([domain, data]) => `
+	timeStatsBody.innerHTML = sorted.map(([domain, data]) => {
+		const totalAttempts = data.visits + data.blocked;
+		const percentBlocked = totalAttempts > 0 ? Math.round(data.blocked / totalAttempts * 100) : 0;
+		return `
 		<tr>
 			<td>${domain}</td>
 			<td>${formatDuration(data.totalTime)}</td>
 			<td>${data.visits}</td>
-			<td>${formatDuration(Math.round(data.totalTime / data.visits))}</td>
+			<td>${formatDuration(data.visits > 0 ? Math.round(data.totalTime / data.visits) : 0)}</td>
+			<td>${percentBlocked}%</td>
 		</tr>
-	`).join('');
+	`;
+	}).join('');
 }
 
 function renderLogs(logs: NavigationLog[]): void {

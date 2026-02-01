@@ -1,6 +1,7 @@
-import { initializeStorage, getGreylist, addActiveSession, removeActiveSession, getActiveSessionByTab, getActiveSessions, setSessionActive, updateLogDuration, addLog, } from '../lib/storage.js';
+import { initializeStorage, getGreylist, getDomainAliases, addActiveSession, removeActiveSession, getActiveSessionByTab, getActiveSessions, setSessionActive, updateLogDuration, addLog, } from '../lib/storage.js';
 import { updateGreylistRules, authorizeTabForDomain, revokeTabAuthorization, revokeAllAuthorizationsForTab } from '../lib/rules.js';
 import { cleanUrl } from '../lib/url-cleaner.js';
+import { getRootDomain } from '../lib/domain.js';
 chrome.runtime.onInstalled.addListener(async () => {
     await initializeStorage();
     const config = await getGreylist();
@@ -116,8 +117,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
     if (changeInfo.url) {
         const session = await getActiveSessionByTab(tabId);
         if (session) {
+            const aliases = await getDomainAliases();
             const currentDomain = extractDomain(changeInfo.url);
-            const isStillOnDomain = currentDomain === session.domain ||
+            const normalizedCurrent = getRootDomain(currentDomain, aliases);
+            const normalizedSession = getRootDomain(session.domain, aliases);
+            const isStillOnDomain = normalizedCurrent === normalizedSession ||
                 currentDomain.endsWith('.' + session.domain);
             if (!isStillOnDomain) {
                 await endSession(tabId);
