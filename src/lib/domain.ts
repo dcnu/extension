@@ -33,3 +33,19 @@ export function getRootDomain(hostname: string, aliases?: DomainAlias[]): string
 	}
 	return root;
 }
+
+/**
+ * Expands a list of domains to include all aliased counterparts.
+ * If twitter.com is in the list and there's an alias twitter.com → x.com,
+ * both twitter.com and x.com will be in the result.
+ */
+export function expandDomainsWithAliases(domains: string[], aliases: DomainAlias[]): string[] {
+	const expanded = new Set(domains);
+	for (const domain of domains) {
+		for (const alias of aliases) {
+			if (alias.from === domain) expanded.add(alias.to);
+			if (alias.to === domain) expanded.add(alias.from);
+		}
+	}
+	return Array.from(expanded);
+}

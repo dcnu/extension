@@ -140,6 +140,9 @@ function renderAliases(aliases: DomainAlias[]): void {
 			currentAliases.splice(index, 1);
 			await setDomainAliases(currentAliases);
 			renderAliases(currentAliases);
+			// Refresh greylist rules to update alias expansion
+			const config = await getGreylist();
+			await updateGreylistRules(config.domains);
 		});
 	});
 }
@@ -175,6 +178,9 @@ aliasAddButton.addEventListener('click', async () => {
 	aliases.push({ from, to });
 	await setDomainAliases(aliases);
 	renderAliases(aliases);
+	// Refresh greylist rules to update alias expansion
+	const config = await getGreylist();
+	await updateGreylistRules(config.domains);
 
 	aliasFromInput.value = '';
 	aliasToInput.value = '';
