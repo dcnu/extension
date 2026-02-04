@@ -38,6 +38,14 @@ export async function updateLogDuration(logId, duration) {
         await chrome.storage.local.set({ [STORAGE_KEYS.LOGS]: logs });
     }
 }
+export async function updateLogAction(logId, action) {
+    const logs = await getLogs();
+    const log = logs.find(l => l.id === logId);
+    if (log) {
+        log.action = action;
+        await chrome.storage.local.set({ [STORAGE_KEYS.LOGS]: logs });
+    }
+}
 export async function clearLogs() {
     await addAuditLog({ event: 'stats_cleared' });
     await chrome.storage.local.set({ [STORAGE_KEYS.LOGS]: [] });
@@ -65,6 +73,10 @@ export async function getActiveSessionByTab(tabId) {
     const sessions = await getActiveSessions();
     return sessions.find(s => s.tabId === tabId) ?? null;
 }
+export async function getSessionCountForDomain(domain) {
+    const sessions = await getActiveSessions();
+    return sessions.filter(s => s.domain === domain).length;
+}
 export async function setSessionActive(tabId, isActive) {
     const sessions = await getActiveSessions();
     const session = sessions.find(s => s.tabId === tabId);
@@ -84,15 +96,19 @@ export async function getAuditLogs() {
     const result = await chrome.storage.local.get(STORAGE_KEYS.AUDIT_LOGS);
     return result[STORAGE_KEYS.AUDIT_LOGS] ?? [];
 }
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export async function addAuditLog(log) {
     const logs = await getAuditLogs();
+    const now = Date.now();
     const newLog = {
         ...log,
         id: crypto.randomUUID(),
-        timestamp: Date.now(),
+        timestamp: now,
     };
     logs.unshift(newLog);
-    await chrome.storage.local.set({ [STORAGE_KEYS.AUDIT_LOGS]: logs });
+    // Prune entries older than 7 days
+    const pruned = logs.filter(l => now - l.timestamp < SEVEN_DAYS_MS);
+    await chrome.storage.local.set({ [STORAGE_KEYS.AUDIT_LOGS]: pruned });
 }
 // Domain aliases
 export async function getDomainAliases() {

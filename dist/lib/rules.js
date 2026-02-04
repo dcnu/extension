@@ -1,7 +1,8 @@
-import { expandDomainsWithAliases } from './domain.js';
+import { expandDomainsWithAliases, getRootDomain } from './domain.js';
 import { getDomainAliases } from './storage.js';
 const REDIRECT_RULE_ID_BASE = 1000;
 const ALLOW_RULE_ID_BASE = 10000;
+const INITIATOR_RULE_ID_BASE = 20000;
 function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -20,6 +21,9 @@ function hashCode(str) {
 function getAllowRuleId(tabId, domain) {
     // Deterministic rule ID from tabId + domain hash
     return ALLOW_RULE_ID_BASE + (tabId % 1000) * 100 + hashCode(domain) % 100;
+}
+function getInitiatorRuleId(domain) {
+    return INITIATOR_RULE_ID_BASE + hashCode(domain) % 10000;
 }
 export async function authorizeTabForDomain(tabId, domain) {
     const aliases = await getDomainAliases();
@@ -113,10 +117,61 @@ export async function updateGreylistRules(domains) {
         addRules: newRules,
     });
 }
+export async function addInitiatorRule(domain) {
+    const aliases = await getDomainAliases();
+    // Use root domain so rule covers all subdomains (l., www., m., etc.)
+    const rootDomain = getRootDomain(domain, aliases);
+    const domainsToAuthorize = expandDomainsWithAliases([rootDomain], aliases);
+    console.log('[rules] addInitiatorRule called:', { domain, rootDomain, domainsToAuthorize });
+    for (const d of domainsToAuthorize) {
+        const ruleId = getInitiatorRuleId(d);
+        const regexFilter = createRegexFilter(d);
+        const rule = {
+            id: ruleId,
+            priority: 2,
+            action: { type: chrome.declarativeNetRequest.RuleActionType.ALLOW },
+            condition: {
+                regexFilter,
+                resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+                initiatorDomains: [d],
+            },
+        };
+        console.log('[rules] Creating initiator rule:', JSON.stringify(rule, null, 2));
+        // Use dynamic rules (not session) so they persist across service worker restarts
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [ruleId],
+            addRules: [rule],
+        });
+        // Verify creation
+        const rules = await chrome.declarativeNetRequest.getDynamicRules();
+        const created = rules.find(r => r.id === ruleId);
+        console.log('[rules] Initiator rule created:', { ruleId, created: !!created });
+    }
+}
+export async function removeInitiatorRule(domain) {
+    const aliases = await getDomainAliases();
+    const rootDomain = getRootDomain(domain, aliases);
+    const domainsToRevoke = expandDomainsWithAliases([rootDomain], aliases);
+    const ruleIds = domainsToRevoke.map(d => getInitiatorRuleId(d));
+    console.log('[rules] Removing initiator rules:', { domain, ruleIds });
+    await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: ruleIds,
+    });
+}
 export async function getRuleCount() {
     const [dynamicRules, sessionRules] = await Promise.all([
         chrome.declarativeNetRequest.getDynamicRules(),
         chrome.declarativeNetRequest.getSessionRules(),
     ]);
     return dynamicRules.length + sessionRules.length;
+}
+export async function debugRules() {
+    const [dynamicRules, sessionRules] = await Promise.all([
+        chrome.declarativeNetRequest.getDynamicRules(),
+        chrome.declarativeNetRequest.getSessionRules(),
+    ]);
+    console.log('[rules] === DEBUG DUMP ===');
+    console.log('[rules] Dynamic rules:', JSON.stringify(dynamicRules, null, 2));
+    console.log('[rules] Session rules:', JSON.stringify(sessionRules, null, 2));
+    console.log('[rules] === END DUMP ===');
 }

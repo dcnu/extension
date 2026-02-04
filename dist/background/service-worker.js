@@ -1,7 +1,9 @@
-import { initializeStorage, getGreylist, getDomainAliases, addActiveSession, removeActiveSession, getActiveSessionByTab, getActiveSessions, setSessionActive, updateLogDuration, addLog, } from '../lib/storage.js';
-import { updateGreylistRules, authorizeTabForDomain, revokeTabAuthorization, revokeAllAuthorizationsForTab } from '../lib/rules.js';
+import { initializeStorage, getGreylist, getDomainAliases, addActiveSession, removeActiveSession, getActiveSessionByTab, getActiveSessions, setSessionActive, updateLogDuration, getSessionCountForDomain, } from '../lib/storage.js';
+import { updateGreylistRules, authorizeTabForDomain, revokeTabAuthorization, revokeAllAuthorizationsForTab, addInitiatorRule, removeInitiatorRule, } from '../lib/rules.js';
 import { cleanUrl } from '../lib/url-cleaner.js';
-import { getRootDomain } from '../lib/domain.js';
+import { getRootDomain, expandDomainsWithAliases } from '../lib/domain.js';
+// Store pending navigation URLs before redirect (keyed by tabId)
+const pendingNavigations = new Map();
 chrome.runtime.onInstalled.addListener(async () => {
     await initializeStorage();
     const config = await getGreylist();
@@ -13,9 +15,18 @@ chrome.action.onClicked.addListener(() => {
     });
 });
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.type === 'GET_ORIGINAL_URL') {
+        const url = pendingNavigations.get(message.tabId);
+        pendingNavigations.delete(message.tabId);
+        sendResponse({ url });
+        return true;
+    }
     if (message.type === 'ALLOW_ONCE') {
         (async () => {
             try {
+                pendingNavigations.delete(message.tabId);
+                // Always add initiator rule (idempotent - handles duplicates)
+                await addInitiatorRule(message.domain);
                 await authorizeTabForDomain(message.tabId, message.domain);
                 await addActiveSession({
                     logId: message.logId,
@@ -31,24 +42,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             }
             catch (error) {
                 console.error('ALLOW_ONCE failed:', error);
-                sendResponse({ success: false, error: String(error) });
-            }
-        })();
-        return true;
-    }
-    if (message.type === 'LOG_BLOCK') {
-        (async () => {
-            try {
-                await addLog({
-                    timestamp: Date.now(),
-                    domain: message.domain,
-                    fullUrl: message.fullUrl,
-                    action: 'blocked',
-                });
-                sendResponse({ success: true });
-            }
-            catch (error) {
-                console.error('LOG_BLOCK failed:', error);
                 sendResponse({ success: false, error: String(error) });
             }
         })();
@@ -97,6 +90,11 @@ async function endSession(tabId) {
         }
         await updateLogDuration(session.logId, duration);
         await revokeTabAuthorization(tabId, session.domain);
+        // Remove initiator rule if this was last session for domain
+        const remainingCount = await getSessionCountForDomain(session.domain);
+        if (remainingCount === 0) {
+            await removeInitiatorRule(session.domain);
+        }
     }
 }
 function extractDomain(url) {
@@ -168,5 +166,54 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
                 await setSessionActive(activeTab.id, true);
             }
         }
+    }
+});
+// Capture full URL before redirect to warning page (fixes URL truncation with query params)
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+    if (details.frameId !== 0)
+        return;
+    console.log('[nav] onBeforeNavigate:', {
+        tabId: details.tabId,
+        url: details.url,
+    });
+    const config = await getGreylist();
+    const aliases = await getDomainAliases();
+    const expandedDomains = expandDomainsWithAliases(config.domains, aliases);
+    const hostname = extractDomain(details.url);
+    const isGreylisted = expandedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+    if (isGreylisted) {
+        console.log('[nav] Greylisted domain detected:', hostname);
+        pendingNavigations.set(details.tabId, details.url);
+        setTimeout(() => pendingNavigations.delete(details.tabId), 30000);
+    }
+});
+// Auto-authorize child tabs opened from authorized parent tabs (same domain)
+chrome.webNavigation.onCreatedNavigationTarget.addListener(async (details) => {
+    const { sourceTabId, tabId, url } = details;
+    console.log('[nav] onCreatedNavigationTarget:', {
+        sourceTabId,
+        tabId,
+        url,
+    });
+    const sourceSession = await getActiveSessionByTab(sourceTabId);
+    console.log('[nav] Source session:', sourceSession);
+    if (!sourceSession)
+        return;
+    const aliases = await getDomainAliases();
+    const targetHostname = extractDomain(url);
+    const targetRoot = getRootDomain(targetHostname, aliases);
+    const sessionRoot = getRootDomain(sourceSession.domain, aliases);
+    console.log('[nav] Domain comparison:', { targetHostname, targetRoot, sessionRoot });
+    if (targetRoot === sessionRoot) {
+        console.log('[nav] Authorizing child tab for same domain');
+        await authorizeTabForDomain(tabId, sourceSession.domain);
+        await addActiveSession({
+            logId: sourceSession.logId,
+            tabId,
+            domain: sourceSession.domain,
+            startTime: Date.now(),
+            accumulatedTime: 0,
+            lastActiveTime: Date.now(),
+        });
     }
 });

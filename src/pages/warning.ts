@@ -1,5 +1,5 @@
-import { addLog } from '../lib/storage.js';
-import type { AllowOnceMessage, LogBlockMessage } from '../lib/types.js';
+import { addLog, updateLogAction } from '../lib/storage.js';
+import type { AllowOnceMessage } from '../lib/types.js';
 
 function isBackForwardNavigation(): boolean {
 	const entries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
@@ -16,7 +16,16 @@ const urlDisplay = document.getElementById('url') as HTMLParagraphElement;
 const blockButton = document.getElementById('block') as HTMLElement;
 const proceedButton = document.getElementById('proceed') as HTMLElement;
 
-function getUrlFromParams(): string | null {
+async function getOriginalUrl(): Promise<string | null> {
+	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+	if (tab?.id) {
+		const response = await chrome.runtime.sendMessage({
+			type: 'GET_ORIGINAL_URL',
+			tabId: tab.id,
+		});
+		if (response?.url) return response.url;
+	}
+	// Fallback for simple URLs
 	const params = new URLSearchParams(window.location.search);
 	return params.get('url');
 }
@@ -29,7 +38,7 @@ function extractDomain(url: string): string {
 	}
 }
 
-const originalUrl = getUrlFromParams();
+const originalUrl = await getOriginalUrl();
 
 if (!originalUrl) {
 	document.body.innerHTML = '<p class="error">No URL specified</p>';
@@ -38,29 +47,16 @@ if (!originalUrl) {
 	domainDisplay.textContent = domain;
 	urlDisplay.textContent = originalUrl;
 
-	let actionTaken = false;
-
-	// Log as blocked if user closes tab without clicking Block or Proceed
-	window.addEventListener('beforeunload', () => {
-		if (!actionTaken) {
-			const message: LogBlockMessage = {
-				type: 'LOG_BLOCK',
-				domain,
-				fullUrl: originalUrl,
-			};
-			chrome.runtime.sendMessage(message);
-		}
+	// Log as blocked immediately - update to proceeded only if user clicks Proceed
+	const logId = await addLog({
+		timestamp: Date.now(),
+		domain,
+		fullUrl: originalUrl,
+		action: 'blocked',
 	});
 
 	blockButton.addEventListener('click', async () => {
-		actionTaken = true;
-		await addLog({
-			timestamp: Date.now(),
-			domain,
-			fullUrl: originalUrl,
-			action: 'blocked',
-		});
-
+		// Already logged as blocked, just navigate away
 		if (history.length > 1) {
 			history.back();
 		} else {
@@ -72,13 +68,7 @@ if (!originalUrl) {
 	});
 
 	proceedButton.addEventListener('click', async () => {
-		actionTaken = true;
-		const logId = await addLog({
-			timestamp: Date.now(),
-			domain,
-			fullUrl: originalUrl,
-			action: 'proceeded',
-		});
+		await updateLogAction(logId, 'proceeded');
 
 		const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 		const tabId = tab?.id ?? 0;
