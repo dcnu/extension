@@ -309,8 +309,24 @@ footer {
 	margin-bottom: 1.5rem;
 }
 
-.warning-actions sl-button::part(base) {
+.warning-actions sl-button#block {
+	--sl-font-size-large: 1.25rem;
+	--sl-input-height-large: 4rem;
+}
+
+.warning-actions sl-button#block::part(base) {
 	width: 100%;
+}
+
+.warning-actions sl-button#proceed {
+	--sl-font-size-large: 0.75rem;
+	--sl-input-height-large: 2rem;
+	align-self: center;
+}
+
+.warning-actions sl-button#proceed::part(base) {
+	width: auto;
+	padding: 0 1rem;
 }
 
 .warning-hint {

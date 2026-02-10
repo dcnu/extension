@@ -11,6 +11,8 @@ const timeStatsBody = document.getElementById('time-stats') as HTMLTableSectionE
 const timeEmptyState = document.getElementById('time-empty-state') as HTMLParagraphElement;
 const auditLogsBody = document.getElementById('audit-logs') as HTMLTableSectionElement;
 const auditEmptyState = document.getElementById('audit-empty-state') as HTMLParagraphElement;
+const timeSavedEl = document.getElementById('time-saved') as HTMLSpanElement;
+const timeSpentEl = document.getElementById('time-spent') as HTMLSpanElement;
 const clearButton = document.getElementById('clear') as HTMLElement;
 
 function formatTimestamp(ts: number): string {
@@ -67,19 +69,27 @@ function renderTimeStats(logs: NavigationLog[], aliases: DomainAlias[]): void {
 	timeEmptyState.hidden = true;
 	const sorted = [...stats.entries()].sort((a, b) => b[1].totalTime - a[1].totalTime);
 
+	let totalTimeSaved = 0;
+	let totalTimeSpent = 0;
 	timeStatsBody.innerHTML = sorted.map(([domain, data]) => {
 		const totalAttempts = data.visits + data.blocked;
 		const percentBlocked = totalAttempts > 0 ? Math.round(data.blocked / totalAttempts * 100) : 0;
+		const avgVisit = data.visits > 0 ? data.totalTime / data.visits : 0;
+		totalTimeSaved += avgVisit * data.blocked;
+		totalTimeSpent += data.totalTime;
 		return `
 		<tr>
 			<td>${domain}</td>
 			<td>${formatDuration(data.totalTime)}</td>
 			<td>${data.visits}</td>
-			<td>${formatDuration(data.visits > 0 ? Math.round(data.totalTime / data.visits) : 0)}</td>
+			<td>${formatDuration(data.visits > 0 ? Math.round(avgVisit) : 0)}</td>
 			<td>${percentBlocked}%</td>
 		</tr>
 	`;
 	}).join('');
+
+	timeSavedEl.textContent = formatDuration(Math.round(totalTimeSaved));
+	timeSpentEl.textContent = formatDuration(Math.round(totalTimeSpent));
 }
 
 function renderLogs(logs: NavigationLog[]): void {
