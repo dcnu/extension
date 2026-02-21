@@ -2,6 +2,10 @@ export interface GreylistConfig {
 	domains: string[];
 }
 
+export interface CleanOnCloseConfig {
+	domains: string[];
+}
+
 export interface NavigationLog {
 	id: string;
 	timestamp: number;
@@ -23,7 +27,7 @@ export interface ActiveSession {
 export interface AuditLog {
 	id: string;
 	timestamp: number;
-	event: 'stats_cleared';
+	event: 'stats_cleared' | 'clean_on_close';
 	details?: string;
 }
 
@@ -34,6 +38,7 @@ export interface DomainAlias {
 
 export interface StorageData {
 	greylist: GreylistConfig;
+	cleanOnClose: CleanOnCloseConfig;
 	logs: NavigationLog[];
 	activeSessions: ActiveSession[];
 	auditLogs: AuditLog[];

@@ -1,6 +1,7 @@
 import {
 	initializeStorage,
 	getGreylist,
+	getCleanOnClose,
 	getDomainAliases,
 	addActiveSession,
 	removeActiveSession,
@@ -20,16 +21,54 @@ import {
 } from '../lib/rules.js';
 import { cleanUrl } from '../lib/url-cleaner.js';
 import { getRootDomain, expandDomainsWithAliases } from '../lib/domain.js';
+import { isCleanOnCloseDomain, cleanAndLog } from '../lib/cleaner.js';
 import type { ExtensionMessage } from '../lib/types.js';
 
 // Store pending navigation URLs before redirect (keyed by tabId)
 const pendingNavigations = new Map<number, string>();
 
+// Track tabs with clean-on-close domains: tabId → matched domain
+const cleanOnCloseTabs = new Map<number, string>();
+
+/**
+ * Rebuild cleanOnCloseTabs from all currently open tabs.
+ * Called on every service worker startup (MV3 can kill/restart at any time).
+ */
+async function populateCleanOnCloseTracking(): Promise<void> {
+	const tabs = await chrome.tabs.query({});
+	for (const tab of tabs) {
+		if (!tab.id || !tab.url) continue;
+		const hostname = extractDomain(tab.url);
+		if (!hostname) continue;
+		const matched = await isCleanOnCloseDomain(hostname);
+		if (matched) {
+			cleanOnCloseTabs.set(tab.id, matched);
+		}
+	}
+}
+
+// Populate on every service worker wake
+populateCleanOnCloseTracking();
+
 chrome.runtime.onInstalled.addListener(async () => {
 	await initializeStorage();
 	const config = await getGreylist();
 	await updateGreylistRules(config.domains);
+	await cleanAllConfiguredDomains();
 });
+
+// On browser startup, clean all configured domains.
+// Covers the case where browser was quit with clean-on-close tabs still open.
+chrome.runtime.onStartup.addListener(async () => {
+	await cleanAllConfiguredDomains();
+});
+
+async function cleanAllConfiguredDomains(): Promise<void> {
+	const config = await getCleanOnClose();
+	for (const domain of config.domains) {
+		await cleanAndLog(domain);
+	}
+}
 
 chrome.action.onClicked.addListener(() => {
 	chrome.tabs.create({
@@ -141,6 +180,16 @@ function extractDomain(url: string): string {
 chrome.tabs.onRemoved.addListener(async (tabId) => {
 	await endSession(tabId);
 	await revokeAllAuthorizationsForTab(tabId);
+
+	// Clean-on-close: if this was the last tab for a tracked domain, clean it
+	const trackedDomain = cleanOnCloseTabs.get(tabId);
+	if (trackedDomain) {
+		cleanOnCloseTabs.delete(tabId);
+		const stillOpen = [...cleanOnCloseTabs.values()].includes(trackedDomain);
+		if (!stillOpen) {
+			await cleanAndLog(trackedDomain);
+		}
+	}
 });
 
 // End session when navigating away from the tracked domain
@@ -157,6 +206,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 			if (!isStillOnDomain) {
 				await endSession(tabId);
 			}
+		}
+
+		// Update clean-on-close tracking for this tab
+		const hostname = extractDomain(changeInfo.url);
+		const matched = await isCleanOnCloseDomain(hostname);
+		if (matched) {
+			cleanOnCloseTabs.set(tabId, matched);
+		} else if (cleanOnCloseTabs.has(tabId)) {
+			cleanOnCloseTabs.delete(tabId);
 		}
 	}
 });
@@ -224,6 +282,12 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 		console.log('[nav] Greylisted domain detected:', hostname);
 		pendingNavigations.set(details.tabId, details.url);
 		setTimeout(() => pendingNavigations.delete(details.tabId), 30000);
+	}
+
+	// Track clean-on-close domains
+	const cleanMatch = await isCleanOnCloseDomain(hostname);
+	if (cleanMatch) {
+		cleanOnCloseTabs.set(details.tabId, cleanMatch);
 	}
 });
 

@@ -63,22 +63,6 @@ export async function authorizeTabForDomain(tabId: number, domain: string): Prom
 			console.error('[rules] updateSessionRules failed:', error);
 			throw error;
 		}
-
-		// Verify rule was created
-		const rules = await chrome.declarativeNetRequest.getSessionRules();
-		const created = rules.find(r => r.id === ruleId);
-		const allowRules = rules.filter(r => r.id >= ALLOW_RULE_ID_BASE);
-		console.log('[rules] After creation:', {
-			ruleId,
-			created: !!created,
-			totalRules: rules.length,
-			allowRuleCount: allowRules.length,
-			allowRuleIds: allowRules.map(r => r.id)
-		});
-
-		if (!created) {
-			throw new Error(`Failed to create allow rule ${ruleId} for ${d}`);
-		}
 	}
 }
 
@@ -168,11 +152,6 @@ export async function addInitiatorRule(domain: string): Promise<void> {
 			removeRuleIds: [ruleId],
 			addRules: [rule],
 		});
-
-		// Verify creation
-		const rules = await chrome.declarativeNetRequest.getDynamicRules();
-		const created = rules.find(r => r.id === ruleId);
-		console.log('[rules] Initiator rule created:', { ruleId, created: !!created });
 	}
 }
 

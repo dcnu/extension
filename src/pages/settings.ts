@@ -1,4 +1,4 @@
-import { getGreylist, setGreylist, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases } from '../lib/storage.js';
+import { getGreylist, setGreylist, getCleanOnClose, setCleanOnClose, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
 import type { DomainAlias } from '../lib/types.js';
 
@@ -84,6 +84,75 @@ domainsInput.addEventListener('keydown', (e: Event) => {
 		saveSettings();
 	}
 });
+
+// Clean on Close section
+const cleanDomainsInput = document.getElementById('clean-domains') as SlTextarea;
+const cleanSaveButton = document.getElementById('clean-save') as HTMLElement;
+const cleanSortButton = document.getElementById('clean-sort') as HTMLElement;
+const cleanPrettierCheckbox = document.getElementById('clean-prettier') as SlCheckbox;
+const cleanMessageAlert = document.getElementById('clean-message') as SlAlert;
+
+function showCleanMessage(text: string, isError: boolean = false): void {
+	cleanMessageAlert.textContent = text;
+	cleanMessageAlert.setAttribute('variant', isError ? 'danger' : 'success');
+	cleanMessageAlert.open = true;
+	setTimeout(() => {
+		cleanMessageAlert.open = false;
+	}, 3000);
+}
+
+function formatCleanDomains(domains: string[]): string {
+	return cleanPrettierCheckbox.checked ? domains.join(',\n') : domains.join(', ');
+}
+
+function getCurrentCleanDomains(): string[] {
+	return [...new Set(parseDomains(cleanDomainsInput.value))];
+}
+
+async function loadCleanSettings(): Promise<void> {
+	const [config, { cleanOnePerLine }] = await Promise.all([
+		getCleanOnClose(),
+		chrome.storage.local.get('cleanOnePerLine'),
+	]);
+	cleanPrettierCheckbox.checked = cleanOnePerLine ?? false;
+	cleanDomainsInput.value = formatCleanDomains(config.domains);
+}
+
+async function saveCleanSettings(): Promise<void> {
+	const rawInput = cleanDomainsInput.value;
+	const domains = [...new Set(parseDomains(rawInput))];
+
+	if (rawInput.trim() && domains.length === 0) {
+		showCleanMessage('No valid domains found. Use format: example.com', true);
+		return;
+	}
+
+	await setCleanOnClose({ domains });
+	cleanDomainsInput.value = formatCleanDomains(domains);
+	showCleanMessage(`Saved ${domains.length} domain${domains.length !== 1 ? 's' : ''}`);
+}
+
+cleanSaveButton.addEventListener('click', saveCleanSettings);
+
+cleanSortButton.addEventListener('click', () => {
+	const domains = getCurrentCleanDomains().sort((a, b) => a.localeCompare(b));
+	cleanDomainsInput.value = formatCleanDomains(domains);
+});
+
+cleanPrettierCheckbox.addEventListener('sl-change', async () => {
+	await chrome.storage.local.set({ cleanOnePerLine: cleanPrettierCheckbox.checked });
+	const domains = getCurrentCleanDomains();
+	cleanDomainsInput.value = formatCleanDomains(domains);
+});
+
+cleanDomainsInput.addEventListener('keydown', (e: Event) => {
+	const ke = e as KeyboardEvent;
+	if (ke.key === 'Enter' && (ke.metaKey || ke.ctrlKey)) {
+		saveCleanSettings();
+	}
+});
+
+loadCleanSettings();
 
 openShortcutsLink.addEventListener('click', (e) => {
 	e.preventDefault();
@@ -194,13 +263,14 @@ const copyDebugButton = document.getElementById('copy-debug') as HTMLElement;
 const debugOutput = document.getElementById('debug-output') as HTMLPreElement;
 
 async function gatherDebugInfo(): Promise<string> {
-	const [logs, sessions, auditLogs, dynamicRules, sessionRules, greylist, aliases] = await Promise.all([
+	const [logs, sessions, auditLogs, dynamicRules, sessionRules, greylist, cleanOnClose, aliases] = await Promise.all([
 		getLogs(),
 		getActiveSessions(),
 		getAuditLogs(),
 		chrome.declarativeNetRequest.getDynamicRules(),
 		chrome.declarativeNetRequest.getSessionRules(),
 		getGreylist(),
+		getCleanOnClose(),
 		getDomainAliases(),
 	]);
 
@@ -215,6 +285,7 @@ async function gatherDebugInfo(): Promise<string> {
 	const info = {
 		timestamp: new Date().toISOString(),
 		greylist: greylist.domains,
+		cleanOnClose: cleanOnClose.domains,
 		domainAliases: aliases,
 		activeSessions: sessions,
 		recentLogs: logs.slice(0, 20),

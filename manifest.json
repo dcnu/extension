@@ -10,7 +10,8 @@
 		"tabs",
 		"offscreen",
 		"clipboardWrite",
-		"webNavigation"
+		"webNavigation",
+		"browsingData"
 	],
 	"host_permissions": ["<all_urls>"],
 	"background": {

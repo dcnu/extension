@@ -454,14 +454,16 @@ footer {
 }
 
 #alias-add::part(base),
-#save::part(base) {
+#save::part(base),
+#clean-save::part(base) {
 	background: var(--color-success);
 	color: white;
 	border-color: var(--color-success);
 }
 
 #alias-add::part(base):hover,
-#save::part(base):hover {
+#save::part(base):hover,
+#clean-save::part(base):hover {
 	background: var(--color-success-hover);
 	border-color: var(--color-success-hover);
 }

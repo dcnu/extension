@@ -80,6 +80,7 @@ function renderTimeStats(logs, aliases) {
     timeSavedEl.textContent = formatDuration(Math.round(totalTimeSaved));
     timeSpentEl.textContent = formatDuration(Math.round(totalTimeSpent));
 }
+const LOG_DISPLAY_LIMIT = 200;
 function renderLogs(logs) {
     const blocked = logs.filter(l => l.action === 'blocked').length;
     const proceeded = logs.filter(l => l.action === 'proceeded').length;
@@ -92,7 +93,8 @@ function renderLogs(logs) {
         return;
     }
     emptyState.hidden = true;
-    logsBody.innerHTML = logs.map(log => `
+    const visible = logs.slice(0, LOG_DISPLAY_LIMIT);
+    logsBody.innerHTML = visible.map(log => `
 		<tr>
 			<td>${formatTimestamp(log.timestamp)}</td>
 			<td title="${log.fullUrl}">${log.domain}</td>
@@ -100,6 +102,19 @@ function renderLogs(logs) {
 			<td>${formatDuration(log.duration)}</td>
 		</tr>
 	`).join('');
+    const truncated = logs.length - visible.length;
+    const existingNotice = document.getElementById('logs-truncation-notice');
+    if (truncated > 0) {
+        const notice = existingNotice ?? document.createElement('p');
+        notice.id = 'logs-truncation-notice';
+        notice.className = 'empty-state';
+        notice.textContent = `Showing ${visible.length} of ${logs.length} entries`;
+        if (!existingNotice)
+            logsBody.parentElement.insertAdjacentElement('afterend', notice);
+    }
+    else if (existingNotice) {
+        existingNotice.remove();
+    }
 }
 function renderAuditLogs(logs) {
     if (logs.length === 0) {
