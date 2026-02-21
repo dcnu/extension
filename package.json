@@ -10,13 +10,18 @@
 		"test": "echo \"No tests yet\" && exit 0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.39.2",
+		"@eslint/js": "^10.0.1",
 		"@types/chrome": "^0.0.287",
-		"eslint": "^9.39.2",
+		"eslint": "^10.0.1",
 		"typescript": "^5.7.0",
-		"typescript-eslint": "^8.54.0"
+		"typescript-eslint": "^8.56.0"
 	},
 	"dependencies": {
 		"@shoelace-style/shoelace": "^2.20.1"
+	},
+	"pnpm": {
+		"overrides": {
+			"minimatch": "^10.2.2"
+		}
 	}
 }

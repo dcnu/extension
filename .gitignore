@@ -49,4 +49,7 @@ coverage/
 .eslintcache
 .stylelintcache
 
+# Security audit results
+.security-audit/
+
 # Note: dist/ is NOT ignored - compiled JS is required for extension to work
