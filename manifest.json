@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "extension",
-	"version": "1.0.3",
+	"version": "0.0.4",
 	"description": "Personal productivity and browsing utilities",
 	"permissions": [
 		"storage",
@@ -11,7 +11,8 @@
 		"offscreen",
 		"clipboardWrite",
 		"webNavigation",
-		"browsingData"
+		"browsingData",
+		"alarms"
 	],
 	"host_permissions": ["<all_urls>"],
 	"background": {
@@ -38,11 +39,18 @@
 				"mac": "Command+Shift+L"
 			},
 			"description": "Copy cleaned URL to clipboard"
+		},
+		"activate-focus-mode": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+F",
+				"mac": "Command+Shift+F"
+			},
+			"description": "Start focus mode timer"
 		}
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["src/pages/warning.html"],
+			"resources": ["src/pages/warning.html", "src/pages/timer.html"],
 			"matches": ["<all_urls>"]
 		}
 	]

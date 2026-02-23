@@ -1,4 +1,4 @@
-import type { GreylistConfig, CleanOnCloseConfig, NavigationLog, ActiveSession, AuditLog, DomainAlias } from './types.js';
+import type { GreylistConfig, CleanOnCloseConfig, NavigationLog, ActiveSession, AuditLog, DomainAlias, FocusModeConfig } from './types.js';
 
 const STORAGE_KEYS = {
 	GREYLIST: 'greylist',
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
 	ACTIVE_SESSIONS: 'activeSessions',
 	AUDIT_LOGS: 'auditLogs',
 	DOMAIN_ALIASES: 'domainAliases',
+	FOCUS_MODE: 'focusMode',
 } as const;
 
 const DEFAULT_ALIASES: DomainAlias[] = [
@@ -17,6 +18,7 @@ const DEFAULT_ALIASES: DomainAlias[] = [
 let _greylist: GreylistConfig | null = null;
 let _cleanOnClose: CleanOnCloseConfig | null = null;
 let _aliases: DomainAlias[] | null = null;
+let _focusMode: FocusModeConfig | null = null;
 
 // Session cache — Map<tabId, ActiveSession> for O(1) access without storage reads
 let _sessions: Map<number, ActiveSession> | null = null;
@@ -27,6 +29,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	if ('greylist' in changes) _greylist = null;
 	if ('cleanOnClose' in changes) _cleanOnClose = null;
 	if ('domainAliases' in changes) _aliases = null;
+	if ('focusMode' in changes) _focusMode = null;
 });
 
 export async function getGreylist(): Promise<GreylistConfig> {
@@ -201,6 +204,25 @@ export async function setDomainAliases(aliases: DomainAlias[]): Promise<void> {
 	await chrome.storage.local.set({ [STORAGE_KEYS.DOMAIN_ALIASES]: aliases });
 }
 
+// Focus mode
+export async function getFocusMode(): Promise<FocusModeConfig> {
+	if (!_focusMode) {
+		const result = await chrome.storage.local.get(STORAGE_KEYS.FOCUS_MODE);
+		_focusMode = result[STORAGE_KEYS.FOCUS_MODE] ?? { endTime: null };
+	}
+	return _focusMode!;
+}
+
+export async function setFocusMode(config: FocusModeConfig): Promise<void> {
+	_focusMode = null;
+	await chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_MODE]: config });
+}
+
+export async function clearFocusMode(): Promise<void> {
+	_focusMode = null;
+	await chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_MODE]: { endTime: null } });
+}
+
 export async function initializeStorage(): Promise<void> {
 	const result = await chrome.storage.local.get([
 		STORAGE_KEYS.GREYLIST,
@@ -209,6 +231,7 @@ export async function initializeStorage(): Promise<void> {
 		STORAGE_KEYS.ACTIVE_SESSIONS,
 		STORAGE_KEYS.AUDIT_LOGS,
 		STORAGE_KEYS.DOMAIN_ALIASES,
+		STORAGE_KEYS.FOCUS_MODE,
 	]);
 	if (!result[STORAGE_KEYS.GREYLIST]) {
 		await setGreylist({ domains: [] });
@@ -227,5 +250,8 @@ export async function initializeStorage(): Promise<void> {
 	}
 	if (!result[STORAGE_KEYS.DOMAIN_ALIASES]) {
 		await setDomainAliases(DEFAULT_ALIASES);
+	}
+	if (!result[STORAGE_KEYS.FOCUS_MODE]) {
+		await clearFocusMode();
 	}
 }

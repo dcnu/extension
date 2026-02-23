@@ -1,11 +1,106 @@
-import { getGreylist, setGreylist, getCleanOnClose, setCleanOnClose, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases } from '../lib/storage.js';
+import { getGreylist, setGreylist, getCleanOnClose, setCleanOnClose, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases, getFocusMode, clearFocusMode } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
-import type { DomainAlias } from '../lib/types.js';
+import type { DomainAlias, ActivateFocusModeMessage } from '../lib/types.js';
 
 type SlTextarea = HTMLElement & { value: string };
 type SlCheckbox = HTMLElement & { checked: boolean };
 type SlAlert = HTMLElement & { open: boolean };
-type SlInput = HTMLElement & { value: string };
+type SlInput = HTMLElement & { value: string; disabled: boolean };
+
+// Focus mode elements
+const focusInactive = document.getElementById('focus-inactive') as HTMLDivElement;
+const focusActive = document.getElementById('focus-active') as HTMLDivElement;
+const focusMinutesInput = document.getElementById('focus-minutes') as SlInput;
+const focusStartButton = document.getElementById('focus-start') as HTMLElement;
+const focusEndButton = document.getElementById('focus-end') as HTMLElement;
+const focusCountdown = document.getElementById('focus-countdown') as HTMLSpanElement;
+const focusMessageAlert = document.getElementById('focus-message') as SlAlert;
+
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+function showFocusMessage(text: string, isError = false): void {
+	focusMessageAlert.textContent = text;
+	focusMessageAlert.setAttribute('variant', isError ? 'danger' : 'success');
+	focusMessageAlert.open = true;
+	setTimeout(() => { focusMessageAlert.open = false; }, 3000);
+}
+
+function formatCountdown(msRemaining: number): string {
+	const totalSeconds = Math.max(0, Math.ceil(msRemaining / 1000));
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes}m ${seconds}s`;
+}
+
+function stopCountdown(): void {
+	if (countdownInterval !== null) {
+		clearInterval(countdownInterval);
+		countdownInterval = null;
+	}
+}
+
+function startCountdown(endTime: number): void {
+	stopCountdown();
+	const tick = (): void => {
+		const remaining = endTime - Date.now();
+		if (remaining <= 0) {
+			stopCountdown();
+			loadFocusMode();
+			return;
+		}
+		focusCountdown.textContent = formatCountdown(remaining);
+	};
+	tick();
+	countdownInterval = setInterval(tick, 1000);
+}
+
+function applyFocusModeToGreylist(active: boolean): void {
+	(domainsInput as SlTextarea & { disabled: boolean }).disabled = active;
+	(saveButton as HTMLElement & { disabled: boolean }).disabled = active;
+	(sortButton as HTMLElement & { disabled: boolean }).disabled = active;
+}
+
+async function loadFocusMode(): Promise<void> {
+	const config = await getFocusMode();
+	const isActive = config.endTime !== null && config.endTime > Date.now();
+
+	if (isActive && config.endTime !== null) {
+		focusInactive.hidden = true;
+		focusActive.hidden = false;
+		startCountdown(config.endTime);
+	} else {
+		focusInactive.hidden = false;
+		focusActive.hidden = true;
+		stopCountdown();
+	}
+	applyFocusModeToGreylist(isActive);
+}
+
+focusStartButton.addEventListener('click', async () => {
+	const minutes = parseInt(focusMinutesInput.value, 10);
+	if (!minutes || minutes < 1 || minutes > 480) {
+		showFocusMessage('Enter a duration between 1 and 480 minutes', true);
+		return;
+	}
+	const msg: ActivateFocusModeMessage = { type: 'ACTIVATE_FOCUS_MODE', durationMinutes: minutes };
+	await chrome.runtime.sendMessage(msg);
+	focusMinutesInput.value = '';
+	await loadFocusMode();
+	showFocusMessage(`Focus mode active for ${minutes} minute${minutes !== 1 ? 's' : ''}`);
+});
+
+focusEndButton.addEventListener('click', async () => {
+	await clearFocusMode();
+	await chrome.alarms.clear('focus-mode-end');
+	await loadFocusMode();
+	showFocusMessage('Focus mode ended');
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+	if (area === 'local' && 'focusMode' in changes) {
+		loadFocusMode();
+	}
+});
 
 const domainsInput = document.getElementById('domains') as SlTextarea;
 const saveButton = document.getElementById('save') as HTMLElement;
@@ -14,6 +109,7 @@ const prettierCheckbox = document.getElementById('prettier') as SlCheckbox;
 const messageAlert = document.getElementById('message') as SlAlert;
 const openShortcutsLink = document.getElementById('open-shortcuts') as HTMLAnchorElement;
 const shortcutCopyCleanUrl = document.getElementById('shortcut-copy-clean-url') as HTMLElement;
+const shortcutActivateFocusMode = document.getElementById('shortcut-activate-focus-mode') as HTMLElement;
 
 function parseDomains(input: string): string[] {
 	return input
@@ -166,13 +262,23 @@ async function getActualShortcut(commandName: string): Promise<string | null> {
 }
 
 async function loadShortcuts(): Promise<void> {
-	const shortcut = await getActualShortcut('copy-clean-url');
-	if (shortcut) {
-		shortcutCopyCleanUrl.textContent = shortcut;
+	const [shortcutCopy, shortcutFocus] = await Promise.all([
+		getActualShortcut('copy-clean-url'),
+		getActualShortcut('activate-focus-mode'),
+	]);
+	if (shortcutCopy) {
+		shortcutCopyCleanUrl.textContent = shortcutCopy;
 		shortcutCopyCleanUrl.classList.remove('not-set');
 	} else {
 		shortcutCopyCleanUrl.textContent = 'Not set';
 		shortcutCopyCleanUrl.classList.add('not-set');
+	}
+	if (shortcutFocus) {
+		shortcutActivateFocusMode.textContent = shortcutFocus;
+		shortcutActivateFocusMode.classList.remove('not-set');
+	} else {
+		shortcutActivateFocusMode.textContent = 'Not set';
+		shortcutActivateFocusMode.classList.add('not-set');
 	}
 }
 
@@ -317,8 +423,9 @@ navLinks.forEach(link => {
 });
 
 // Set initial active state based on hash or first item
-const initialHash = window.location.hash || '#greylist';
+const initialHash = window.location.hash || '#focus-mode';
 const initialLink = document.querySelector(`.sidebar-nav a[href="${initialHash}"]`);
 initialLink?.classList.add('active');
 
 loadSettings();
+loadFocusMode();

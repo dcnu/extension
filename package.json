@@ -1,6 +1,6 @@
 {
 	"name": "extension",
-	"version": "1.0.3",
+	"version": "0.0.4",
 	"description": "Browser extension that intercepts navigation to greylist domains",
 	"type": "module",
 	"scripts": {

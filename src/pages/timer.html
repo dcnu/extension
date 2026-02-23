@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-light">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Focus Mode</title>
+	<link rel="stylesheet" href="../styles/global.css">
+	<link rel="stylesheet" href="../../vendor/shoelace/themes/light.css" />
+	<script type="module" src="../../vendor/shoelace/shoelace-autoloader.js"></script>
+</head>
+<body class="timer-page">
+	<div class="timer-container">
+		<h1>Focus Mode</h1>
+		<div class="timer-row">
+			<sl-input id="minutes" type="number" min="1" max="480" label="Minutes" autofocus size="small" style="width: 140px"></sl-input>
+			<sl-button id="start" variant="primary">Start</sl-button>
+		</div>
+		<sl-alert id="error" variant="danger" closable></sl-alert>
+	</div>
+	<script type="module" src="../../dist/pages/timer.js"></script>
+</body>
+</html>

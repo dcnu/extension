@@ -1,5 +1,89 @@
-import { getGreylist, setGreylist, getCleanOnClose, setCleanOnClose, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases } from '../lib/storage.js';
+import { getGreylist, setGreylist, getCleanOnClose, setCleanOnClose, getLogs, getActiveSessions, getAuditLogs, getDomainAliases, setDomainAliases, getFocusMode, clearFocusMode } from '../lib/storage.js';
 import { updateGreylistRules } from '../lib/rules.js';
+// Focus mode elements
+const focusInactive = document.getElementById('focus-inactive');
+const focusActive = document.getElementById('focus-active');
+const focusMinutesInput = document.getElementById('focus-minutes');
+const focusStartButton = document.getElementById('focus-start');
+const focusEndButton = document.getElementById('focus-end');
+const focusCountdown = document.getElementById('focus-countdown');
+const focusMessageAlert = document.getElementById('focus-message');
+let countdownInterval = null;
+function showFocusMessage(text, isError = false) {
+    focusMessageAlert.textContent = text;
+    focusMessageAlert.setAttribute('variant', isError ? 'danger' : 'success');
+    focusMessageAlert.open = true;
+    setTimeout(() => { focusMessageAlert.open = false; }, 3000);
+}
+function formatCountdown(msRemaining) {
+    const totalSeconds = Math.max(0, Math.ceil(msRemaining / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}m ${seconds}s`;
+}
+function stopCountdown() {
+    if (countdownInterval !== null) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+}
+function startCountdown(endTime) {
+    stopCountdown();
+    const tick = () => {
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) {
+            stopCountdown();
+            loadFocusMode();
+            return;
+        }
+        focusCountdown.textContent = formatCountdown(remaining);
+    };
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+}
+function applyFocusModeToGreylist(active) {
+    domainsInput.disabled = active;
+    saveButton.disabled = active;
+    sortButton.disabled = active;
+}
+async function loadFocusMode() {
+    const config = await getFocusMode();
+    const isActive = config.endTime !== null && config.endTime > Date.now();
+    if (isActive && config.endTime !== null) {
+        focusInactive.hidden = true;
+        focusActive.hidden = false;
+        startCountdown(config.endTime);
+    }
+    else {
+        focusInactive.hidden = false;
+        focusActive.hidden = true;
+        stopCountdown();
+    }
+    applyFocusModeToGreylist(isActive);
+}
+focusStartButton.addEventListener('click', async () => {
+    const minutes = parseInt(focusMinutesInput.value, 10);
+    if (!minutes || minutes < 1 || minutes > 480) {
+        showFocusMessage('Enter a duration between 1 and 480 minutes', true);
+        return;
+    }
+    const msg = { type: 'ACTIVATE_FOCUS_MODE', durationMinutes: minutes };
+    await chrome.runtime.sendMessage(msg);
+    focusMinutesInput.value = '';
+    await loadFocusMode();
+    showFocusMessage(`Focus mode active for ${minutes} minute${minutes !== 1 ? 's' : ''}`);
+});
+focusEndButton.addEventListener('click', async () => {
+    await clearFocusMode();
+    await chrome.alarms.clear('focus-mode-end');
+    await loadFocusMode();
+    showFocusMessage('Focus mode ended');
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && 'focusMode' in changes) {
+        loadFocusMode();
+    }
+});
 const domainsInput = document.getElementById('domains');
 const saveButton = document.getElementById('save');
 const sortButton = document.getElementById('sort');
@@ -7,6 +91,7 @@ const prettierCheckbox = document.getElementById('prettier');
 const messageAlert = document.getElementById('message');
 const openShortcutsLink = document.getElementById('open-shortcuts');
 const shortcutCopyCleanUrl = document.getElementById('shortcut-copy-clean-url');
+const shortcutActivateFocusMode = document.getElementById('shortcut-activate-focus-mode');
 function parseDomains(input) {
     return input
         .split(/[,\n]/)
@@ -130,14 +215,25 @@ async function getActualShortcut(commandName) {
     return command?.shortcut || null;
 }
 async function loadShortcuts() {
-    const shortcut = await getActualShortcut('copy-clean-url');
-    if (shortcut) {
-        shortcutCopyCleanUrl.textContent = shortcut;
+    const [shortcutCopy, shortcutFocus] = await Promise.all([
+        getActualShortcut('copy-clean-url'),
+        getActualShortcut('activate-focus-mode'),
+    ]);
+    if (shortcutCopy) {
+        shortcutCopyCleanUrl.textContent = shortcutCopy;
         shortcutCopyCleanUrl.classList.remove('not-set');
     }
     else {
         shortcutCopyCleanUrl.textContent = 'Not set';
         shortcutCopyCleanUrl.classList.add('not-set');
+    }
+    if (shortcutFocus) {
+        shortcutActivateFocusMode.textContent = shortcutFocus;
+        shortcutActivateFocusMode.classList.remove('not-set');
+    }
+    else {
+        shortcutActivateFocusMode.textContent = 'Not set';
+        shortcutActivateFocusMode.classList.add('not-set');
     }
 }
 loadShortcuts();
@@ -261,7 +357,8 @@ navLinks.forEach(link => {
     });
 });
 // Set initial active state based on hash or first item
-const initialHash = window.location.hash || '#greylist';
+const initialHash = window.location.hash || '#focus-mode';
 const initialLink = document.querySelector(`.sidebar-nav a[href="${initialHash}"]`);
 initialLink?.classList.add('active');
 loadSettings();
+loadFocusMode();

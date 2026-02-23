@@ -1,4 +1,4 @@
-import { addLog, updateLogAction } from '../lib/storage.js';
+import { addLog, updateLogAction, getFocusMode } from '../lib/storage.js';
 function isBackForwardNavigation() {
     const entries = performance.getEntriesByType('navigation');
     return entries[0]?.type === 'back_forward';
@@ -11,6 +11,7 @@ const domainDisplay = document.getElementById('domain');
 const urlDisplay = document.getElementById('url');
 const blockButton = document.getElementById('block');
 const proceedButton = document.getElementById('proceed');
+const focusBlockedMsg = document.getElementById('focus-blocked');
 async function getOriginalUrl() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {
@@ -47,6 +48,20 @@ else {
         domain,
         fullUrl: originalUrl,
         action: 'blocked',
+    });
+    // Check focus mode — hide proceed button if active
+    const focusMode = await getFocusMode();
+    if (focusMode.endTime !== null && focusMode.endTime > Date.now()) {
+        proceedButton.hidden = true;
+        focusBlockedMsg.hidden = false;
+    }
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !('focusMode' in changes))
+            return;
+        const newVal = changes['focusMode'].newValue;
+        const isActive = newVal?.endTime !== null && newVal?.endTime > Date.now();
+        proceedButton.hidden = isActive;
+        focusBlockedMsg.hidden = !isActive;
     });
     blockButton.addEventListener('click', async () => {
         // Already logged as blocked, just navigate away

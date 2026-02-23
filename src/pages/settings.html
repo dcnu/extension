@@ -13,6 +13,7 @@
 		<nav class="sidebar">
 			<div class="sidebar-header">🐻</div>
 			<ul class="sidebar-nav">
+				<li><a href="#focus-mode">Focus Mode</a></li>
 				<li><a href="#greylist">Greylist</a></li>
 				<li><a href="#clean-on-close">Clean on Close</a></li>
 				<li><a href="#statistics">Statistics</a></li>
@@ -21,11 +22,27 @@
 				<li><a href="#debug">Debug</a></li>
 			</ul>
 			<footer class="sidebar-footer">
-				<p>v1.0.0</p>
+				<p>v0.0.4</p>
 			</footer>
 		</nav>
 
 		<main class="settings-content">
+			<section id="focus-mode" class="card">
+				<h2>Focus Mode</h2>
+				<p class="help-text">Temporarily blacklist all greylisted domains.</p>
+				<div id="focus-inactive">
+					<div class="focus-start-row">
+						<sl-input id="focus-minutes" type="number" min="1" max="480" placeholder="Minutes" size="small" style="width: 120px"></sl-input>
+						<sl-button id="focus-start" variant="primary">Start</sl-button>
+					</div>
+				</div>
+				<div id="focus-active" hidden>
+					<p class="focus-countdown-label">Active — ends in <span id="focus-countdown"></span></p>
+					<sl-button id="focus-end" variant="neutral" size="small">End Early</sl-button>
+				</div>
+				<sl-alert id="focus-message" variant="success" closable></sl-alert>
+			</section>
+
 			<section id="greylist" class="card">
 				<h2>Greylist Domains</h2>
 				<p class="help-text">Enter domains separated by commas (e.g., facebook.com, twitter.com)</p>
@@ -80,6 +97,10 @@
 					<div class="shortcut-item">
 						<kbd id="shortcut-copy-clean-url"></kbd>
 						<span>Copy current URL without tracking parameters</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd id="shortcut-activate-focus-mode"></kbd>
+						<span>Start focus mode timer</span>
 					</div>
 				</div>
 				<p class="help-text shortcut-hint">Customize shortcuts in <a href="#" id="open-shortcuts">browser settings</a></p>

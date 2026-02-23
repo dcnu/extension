@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
     ACTIVE_SESSIONS: 'activeSessions',
     AUDIT_LOGS: 'auditLogs',
     DOMAIN_ALIASES: 'domainAliases',
+    FOCUS_MODE: 'focusMode',
 };
 const DEFAULT_ALIASES = [
     { from: 'twitter.com', to: 'x.com' },
@@ -13,6 +14,7 @@ const DEFAULT_ALIASES = [
 let _greylist = null;
 let _cleanOnClose = null;
 let _aliases = null;
+let _focusMode = null;
 // Session cache — Map<tabId, ActiveSession> for O(1) access without storage reads
 let _sessions = null;
 // Invalidate config caches when another context writes to storage
@@ -25,6 +27,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
         _cleanOnClose = null;
     if ('domainAliases' in changes)
         _aliases = null;
+    if ('focusMode' in changes)
+        _focusMode = null;
 });
 export async function getGreylist() {
     if (!_greylist) {
@@ -179,6 +183,22 @@ export async function setDomainAliases(aliases) {
     _aliases = null;
     await chrome.storage.local.set({ [STORAGE_KEYS.DOMAIN_ALIASES]: aliases });
 }
+// Focus mode
+export async function getFocusMode() {
+    if (!_focusMode) {
+        const result = await chrome.storage.local.get(STORAGE_KEYS.FOCUS_MODE);
+        _focusMode = result[STORAGE_KEYS.FOCUS_MODE] ?? { endTime: null };
+    }
+    return _focusMode;
+}
+export async function setFocusMode(config) {
+    _focusMode = null;
+    await chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_MODE]: config });
+}
+export async function clearFocusMode() {
+    _focusMode = null;
+    await chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_MODE]: { endTime: null } });
+}
 export async function initializeStorage() {
     const result = await chrome.storage.local.get([
         STORAGE_KEYS.GREYLIST,
@@ -187,6 +207,7 @@ export async function initializeStorage() {
         STORAGE_KEYS.ACTIVE_SESSIONS,
         STORAGE_KEYS.AUDIT_LOGS,
         STORAGE_KEYS.DOMAIN_ALIASES,
+        STORAGE_KEYS.FOCUS_MODE,
     ]);
     if (!result[STORAGE_KEYS.GREYLIST]) {
         await setGreylist({ domains: [] });
@@ -205,5 +226,8 @@ export async function initializeStorage() {
     }
     if (!result[STORAGE_KEYS.DOMAIN_ALIASES]) {
         await setDomainAliases(DEFAULT_ALIASES);
+    }
+    if (!result[STORAGE_KEYS.FOCUS_MODE]) {
+        await clearFocusMode();
     }
 }

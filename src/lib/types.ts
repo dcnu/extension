@@ -36,6 +36,10 @@ export interface DomainAlias {
 	to: string;
 }
 
+export interface FocusModeConfig {
+	endTime: number | null;
+}
+
 export interface StorageData {
 	greylist: GreylistConfig;
 	cleanOnClose: CleanOnCloseConfig;
@@ -43,9 +47,10 @@ export interface StorageData {
 	activeSessions: ActiveSession[];
 	auditLogs: AuditLog[];
 	domainAliases: DomainAlias[];
+	focusMode: FocusModeConfig;
 }
 
-export type MessageType = 'ALLOW_ONCE' | 'RULES_UPDATED' | 'COPY_TEXT' | 'GET_ORIGINAL_URL';
+export type MessageType = 'ALLOW_ONCE' | 'RULES_UPDATED' | 'COPY_TEXT' | 'GET_ORIGINAL_URL' | 'ACTIVATE_FOCUS_MODE';
 
 export interface AllowOnceMessage {
 	type: 'ALLOW_ONCE';
@@ -69,4 +74,9 @@ export interface GetOriginalUrlMessage {
 	tabId: number;
 }
 
-export type ExtensionMessage = AllowOnceMessage | RulesUpdatedMessage | CopyTextMessage | GetOriginalUrlMessage;
+export interface ActivateFocusModeMessage {
+	type: 'ACTIVATE_FOCUS_MODE';
+	durationMinutes: number;
+}
+
+export type ExtensionMessage = AllowOnceMessage | RulesUpdatedMessage | CopyTextMessage | GetOriginalUrlMessage | ActivateFocusModeMessage;

@@ -455,7 +455,8 @@ footer {
 
 #alias-add::part(base),
 #save::part(base),
-#clean-save::part(base) {
+#clean-save::part(base),
+#focus-start::part(base) {
 	background: var(--color-success);
 	color: white;
 	border-color: var(--color-success);
@@ -463,9 +464,57 @@ footer {
 
 #alias-add::part(base):hover,
 #save::part(base):hover,
-#clean-save::part(base):hover {
+#clean-save::part(base):hover,
+#focus-start::part(base):hover {
 	background: var(--color-success-hover);
 	border-color: var(--color-success-hover);
+}
+
+/* Focus mode */
+.focus-start-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 0.75rem;
+}
+
+.focus-countdown-label {
+	font-size: 0.875rem;
+	color: var(--color-text);
+	margin-bottom: 0.75rem;
+}
+
+.focus-blocked-message {
+	color: var(--color-danger);
+	font-size: 0.875rem;
+	font-weight: 500;
+	margin-top: 0.75rem;
+}
+
+/* Timer popup page */
+.timer-page {
+	margin: 0;
+	padding: 0;
+	background: var(--color-surface);
+}
+
+.timer-container {
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.timer-container h1 {
+	font-size: 1rem;
+	font-weight: 600;
+	margin: 0;
+	color: var(--color-text);
+}
+
+.timer-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 0.75rem;
 }
 
 /* Debug section */

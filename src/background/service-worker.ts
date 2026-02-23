@@ -10,6 +10,9 @@ import {
 	setSessionActive,
 	updateLogDuration,
 	getSessionCountForDomain,
+	getFocusMode,
+	setFocusMode,
+	clearFocusMode,
 } from '../lib/storage.js';
 import {
 	updateGreylistRules,
@@ -87,6 +90,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
 	if (message.type === 'ALLOW_ONCE') {
 		(async () => {
 			try {
+				// Reject if focus mode is active
+				const focusMode = await getFocusMode();
+				if (focusMode.endTime !== null && focusMode.endTime > Date.now()) {
+					sendResponse({ success: false, blocked: true });
+					return;
+				}
+
 				pendingNavigations.delete(message.tabId);
 
 				// Always add initiator rule (idempotent - handles duplicates)
@@ -110,6 +120,27 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
 			}
 		})();
 		return true;
+	}
+
+	if (message.type === 'ACTIVATE_FOCUS_MODE') {
+		(async () => {
+			try {
+				const endTime = Date.now() + message.durationMinutes * 60_000;
+				await setFocusMode({ endTime });
+				chrome.alarms.create('focus-mode-end', { when: endTime });
+				sendResponse({ success: true });
+			} catch (error) {
+				console.error('ACTIVATE_FOCUS_MODE failed:', error);
+				sendResponse({ success: false, error: String(error) });
+			}
+		})();
+		return true;
+	}
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+	if (alarm.name === 'focus-mode-end') {
+		await clearFocusMode();
 	}
 });
 
@@ -145,6 +176,23 @@ chrome.commands.onCommand.addListener(async (command) => {
 			const cleaned = cleanUrl(tab.url);
 			await copyToClipboard(cleaned);
 		}
+	}
+
+	if (command === 'activate-focus-mode') {
+		const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+		const focusedWindow = windows.find(w => w.focused);
+		const winLeft = focusedWindow?.left ?? 0;
+		const winTop = focusedWindow?.top ?? 0;
+		const winWidth = focusedWindow?.width ?? 1280;
+		const winHeight = focusedWindow?.height ?? 800;
+		chrome.windows.create({
+			url: chrome.runtime.getURL('src/pages/timer.html'),
+			type: 'popup',
+			width: 360,
+			height: 220,
+			left: Math.round(winLeft + (winWidth - 360) / 2),
+			top: Math.round(winTop + (winHeight - 220) / 2),
+		});
 	}
 });
 
